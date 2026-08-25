@@ -332,7 +332,7 @@ function QuizView({ movement, onCorrect }: { movement: typeof courseData['String
         <button
           onClick={handleSubmit}
           disabled={selected === null}
-          className="mt-4 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="mt-4 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Submit answer
         </button>

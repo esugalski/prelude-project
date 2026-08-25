@@ -315,7 +315,7 @@ export function LessonsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cta text-cta-foreground font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
               >
                 {submitting ? 'Submitting...' : 'Enroll my child'}
                 {!submitting && <ArrowRight className="w-4 h-4" />}

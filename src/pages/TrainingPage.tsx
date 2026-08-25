@@ -370,7 +370,7 @@ export function TrainingModulePage() {
             ) : null}
             <Link
               to="/portal"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-sm text-sm font-semibold hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground rounded-sm text-sm font-semibold hover:bg-cta/90 transition-colors"
             >
               <Heart className="w-4 h-4" /> Back to Portal
             </Link>

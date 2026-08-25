@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Music2, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import iconMark from '@/assets/brand/03_icon_mark_transparent.png';
 
 const exploreLinks = [
   { label: 'About & Mission', path: '/about' },
@@ -15,8 +16,8 @@ export function Footer() {
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
             <div className="flex items-center gap-2">
-              <Music2 className="w-5 h-5 text-primary" strokeWidth={1.5} />
-              <span className="font-display text-xl font-semibold">The Prelude Project</span>
+              <img src={iconMark} alt="" className="w-6 h-6 object-contain" />
+              <span className="font-display text-xl font-semibold">Melody Mission</span>
             </div>
             <p className="mt-5 max-w-sm text-background/70 text-base leading-relaxed">
               Turning a child's potential into a masterpiece. Free music lessons,
@@ -62,7 +63,7 @@ export function Footer() {
         </div>
 
         <div className="mt-16 pt-6 border-t border-background/15 flex flex-col md:flex-row justify-between gap-3 text-xs text-background/50">
-          <span>&copy; {new Date().getFullYear()} The Prelude Project.</span>
+          <span>&copy; {new Date().getFullYear()} Melody Mission.</span>
           <div className="flex items-center gap-4">
             <span>Privacy &middot; Terms &middot; Built with care</span>
           </div>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Music2, ArrowRight, ArrowLeft, AlertCircle, KeyRound } from 'lucide-react';
+import { ArrowRight, ArrowLeft, AlertCircle, KeyRound } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import iconMark from '@/assets/brand/03_icon_mark_transparent.png';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -57,8 +58,8 @@ export function LoginPage() {
           </Link>
 
           <div className="mt-8 flex items-center gap-2">
-            <Music2 className="w-6 h-6 text-primary" strokeWidth={1.5} />
-            <span className="font-display text-xl font-semibold">Prelude<span className="text-primary">.</span></span>
+            <img src={iconMark} alt="" className="w-6 h-6 object-contain" />
+            <span className="font-display text-xl font-semibold">Melody Mission</span>
           </div>
 
           <h1 className="mt-6 font-display text-4xl tracking-tight">Welcome back.</h1>
@@ -106,7 +107,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cta text-cta-foreground font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
             >
               {loading ? 'Signing in...' : 'Log in'}
               {!loading && <ArrowRight className="w-4 h-4" />}

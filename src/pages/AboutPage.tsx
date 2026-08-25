@@ -37,7 +37,7 @@ export function AboutPage() {
         </div>
         <div className="relative mx-auto max-w-7xl px-6 pt-32 pb-16 md:pt-40 md:pb-20">
           <Reveal>
-            <p className="text-xs uppercase tracking-[0.22em] text-foreground/50">About The Prelude Project</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-foreground/50">About Melody Mission</p>
             <h1 className="mt-4 font-display text-5xl md:text-7xl leading-[0.95] tracking-tight max-w-3xl text-balance">
               We turn a child's potential into the masterpiece.
             </h1>
@@ -60,7 +60,7 @@ export function AboutPage() {
               melody always said enough.
             </p>
             <p>
-              That's what sparked The Prelude Project. I realized the lifeline that music had been
+              That's what sparked Melody Mission. I realized the lifeline that music had been
               for me wasn't available to every child — that there were kids with the same ache to
               play, the same need for an outlet, but no instrument, no teacher, no open door. I
               couldn't sit with that knowing what music could do for them. So I decided to build the

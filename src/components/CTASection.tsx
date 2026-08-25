@@ -24,7 +24,7 @@ export function CTASection({ title, subtitle }: CTASectionProps) {
           <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               to="/volunteer"
-              className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-primary text-primary-foreground font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+              className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-cta text-cta-foreground font-semibold rounded-sm hover:bg-cta/90 transition-colors"
             >
               Volunteer to teach
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

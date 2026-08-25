@@ -322,7 +322,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                     href={volunteerMeetLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
                   >
                     <Video className="w-4 h-4" />
                     Join session
@@ -395,7 +395,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 {slot.notes && <p className="mt-2 text-xs text-foreground/50">{slot.notes}</p>}
                 <button
                   onClick={() => setRequestingId(slot.id)}
-                  className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+                  className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
                 >
                   Request this slot
                 </button>
@@ -459,7 +459,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+                  className="flex-1 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
                 >
                   {submitting ? 'Sending...' : 'Send request'}
                 </button>
@@ -1304,7 +1304,7 @@ function SessionLogForm({ students, volunteerId, onLogged }: {
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What did you work on?" className="mt-1 w-full px-3 py-2 text-sm border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring" />
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40">
+      <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40">
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
         {saving ? 'Logging...' : 'Log session'}
       </button>
@@ -1555,7 +1555,7 @@ function VolunteerResourcesTab({ volunteerId, students }: {
           </h4>
           <button
             onClick={startNewPlan}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
           >
             <Plus className="w-4 h-4" /> New plan
           </button>
@@ -1939,7 +1939,7 @@ function LessonPlanEditor({ volunteerId, existingPlan, students, onClose, onSave
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-2 px-5 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving...' : 'Save plan'}

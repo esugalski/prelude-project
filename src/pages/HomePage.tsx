@@ -75,7 +75,7 @@ export function HomePage() {
 
         <div className="relative mx-auto max-w-7xl px-6 pt-32 pb-16 md:pt-44 md:pb-24">
           <Reveal>
-            <p className="text-xs uppercase tracking-[0.22em] text-foreground/50">The Prelude Project</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-foreground/50">Melody Mission</p>
             <h1 className="mt-5 font-display text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight max-w-4xl text-balance">
               Every child deserves a first note.
             </h1>
@@ -90,7 +90,7 @@ export function HomePage() {
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/lessons"
-                className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-primary text-primary-foreground font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+                className="group inline-flex items-center justify-center gap-2 px-7 py-4 bg-cta text-cta-foreground font-semibold rounded-sm hover:bg-cta/90 transition-colors"
               >
                 Sign up for lessons
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

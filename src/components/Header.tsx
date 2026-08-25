@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Music2, Menu, X, LogIn, LogOut } from 'lucide-react';
+import { Menu, X, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import iconMark from '@/assets/brand/03_icon_mark_transparent.png';
 
 const navItems = [
   { label: 'About', path: '/about' },
@@ -37,9 +38,9 @@ export function Header() {
     >
       <nav className="mx-auto max-w-7xl px-6 h-16 md:h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <Music2 className="w-5 h-5 text-primary transition-transform group-hover:scale-110" strokeWidth={1.5} />
+          <img src={iconMark} alt="" className="w-6 h-6 object-contain transition-transform group-hover:scale-110" />
           <span className="font-display text-lg tracking-tight font-semibold">
-            Prelude<span className="text-primary">.</span>
+            Melody Mission
           </span>
         </Link>
 
@@ -85,7 +86,7 @@ export function Header() {
           ) : (
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold tracking-wide rounded-sm hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold tracking-wide rounded-sm hover:bg-cta/90 transition-colors"
             >
               <LogIn className="w-4 h-4" /> Log in
             </Link>
@@ -135,7 +136,7 @@ export function Header() {
             ) : (
               <Link
                 to="/login"
-                className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm"
+                className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm"
               >
                 <LogIn className="w-4 h-4" /> Log in
               </Link>

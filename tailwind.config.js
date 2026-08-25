@@ -37,6 +37,10 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        cta: {
+          DEFAULT: 'hsl(var(--cta))',
+          foreground: 'hsl(var(--cta-foreground))',
+        },
       },
       borderRadius: {
         DEFAULT: 'var(--radius)',
@@ -45,9 +49,9 @@ export default {
         lg: 'var(--radius)',
       },
       fontFamily: {
-        display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
-        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Comfortaa', 'ui-serif', 'Georgia', 'serif'],
+        body: ['Nunito Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Nunito Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
     },

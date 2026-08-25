@@ -249,7 +249,7 @@ export function VolunteerPage() {
                     type="button"
                     onClick={() => setStep(1)}
                     disabled={!form.full_name || !form.email}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
                   >
                     Next <ArrowRight className="w-4 h-4" />
                   </button>
@@ -311,7 +311,7 @@ export function VolunteerPage() {
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
                   >
                     Next <ArrowRight className="w-4 h-4" />
                   </button>
@@ -342,7 +342,7 @@ export function VolunteerPage() {
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
                   >
                     Next <ArrowRight className="w-4 h-4" />
                   </button>
@@ -408,7 +408,7 @@ export function VolunteerPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-sm hover:bg-primary/90 transition-colors disabled:opacity-40"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
                   >
                     {submitting ? 'Submitting...' : 'Submit application'}
                   </button>
@@ -535,7 +535,7 @@ function SlotBuilder({
       <button
         type="button"
         onClick={addSlot}
-        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-sm hover:bg-primary/90 transition-colors"
+        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-medium rounded-sm hover:bg-cta/90 transition-colors"
       >
         <Plus className="w-4 h-4" /> Add this time
       </button>
