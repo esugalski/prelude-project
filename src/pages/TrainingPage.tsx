@@ -235,14 +235,14 @@ export function TrainingModulePage() {
 
       {/* Do / Don't */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <div className="flex items-start gap-3 p-5 bg-green-50 border border-green-200 rounded-sm">
-          <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" strokeWidth={1.5} />
+        <div className="flex items-start gap-3 p-5 bg-accent/20 border border-accent/50 rounded-sm">
+          <CheckCircle2 className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-green-700">Do</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-foreground">Do</p>
             <p className="mt-1 text-sm text-foreground/80 leading-relaxed">{mod.doDont.do}</p>
           </div>
         </div>
-        <div className="flex items-start gap-3 p-5 bg-red-50 border border-red-200 rounded-sm">
+        <div className="flex items-start gap-3 p-5 bg-destructive/10 border border-destructive/30 rounded-sm">
           <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" strokeWidth={1.5} />
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-destructive">Avoid</p>
@@ -309,9 +309,9 @@ export function TrainingModulePage() {
                       }}
                       className={`w-full text-left px-4 py-3 rounded-sm border transition-colors ${
                         showResult && isCorrect
-                          ? 'border-green-500 bg-green-50 text-green-800'
+                          ? 'border-accent-foreground/50 bg-accent/20 text-accent-foreground'
                           : showResult && !isCorrect
-                          ? 'border-red-400 bg-red-50 text-red-800'
+                          ? 'border-destructive/50 bg-destructive/10 text-destructive'
                           : selected
                           ? 'border-secondary bg-secondary/10'
                           : 'border-border bg-background hover:bg-muted'
@@ -332,7 +332,7 @@ export function TrainingModulePage() {
           </p>
         )}
         {completed[idx] && (
-          <p className="mt-5 flex items-center gap-2 text-sm text-green-700">
+          <p className="mt-5 flex items-center gap-2 text-sm text-accent-foreground">
             <CheckCircle2 className="w-4 h-4" /> All correct — module complete!
           </p>
         )}

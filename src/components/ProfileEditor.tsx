@@ -257,7 +257,7 @@ export function ProfileEditor({
           {saving ? 'Saving...' : 'Save profile'}
         </button>
         {saved && (
-          <span className="text-sm text-green-700 font-medium">Profile saved!</span>
+          <span className="text-sm text-accent-foreground font-medium">Profile saved!</span>
         )}
       </div>
     </form>

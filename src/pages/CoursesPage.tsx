@@ -241,7 +241,7 @@ export function MovementPage() {
       </div>
 
       {completedMovements.has(idx) && (
-        <div className="mt-6 flex items-center gap-2 text-sm text-green-700">
+        <div className="mt-6 flex items-center gap-2 text-sm text-accent-foreground">
           <CheckCircle2 className="w-4 h-4" /> Movement completed
         </div>
       )}
@@ -309,7 +309,7 @@ function QuizView({ movement, onCorrect }: { movement: typeof courseData['String
           const isCorrect = i === movement.quiz.answer;
           const isSelected = selected === i;
           let style = 'border-border bg-background hover:bg-muted/40';
-          if (answered && isCorrect) style = 'border-green-500 bg-green-50';
+          if (answered && isCorrect) style = 'border-accent-foreground/50 bg-accent/20';
           else if (answered && isSelected && !isCorrect) style = 'border-destructive bg-destructive/5';
           else if (answered) style = 'border-border bg-background opacity-60';
 
@@ -321,7 +321,7 @@ function QuizView({ movement, onCorrect }: { movement: typeof courseData['String
               className={`w-full text-left p-3.5 border rounded-sm transition-colors flex items-center justify-between ${style}`}
             >
               <span className="text-sm">{opt}</span>
-              {answered && isCorrect && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+              {answered && isCorrect && <CheckCircle2 className="w-5 h-5 text-accent-foreground" />}
               {answered && isSelected && !isCorrect && <X className="w-5 h-5 text-destructive" />}
             </button>
           );
@@ -338,7 +338,7 @@ function QuizView({ movement, onCorrect }: { movement: typeof courseData['String
         </button>
       ) : (
         <div className="mt-4">
-          <p className={`text-sm font-medium ${selected === movement.quiz.answer ? 'text-green-700' : 'text-destructive'}`}>
+          <p className={`text-sm font-medium ${selected === movement.quiz.answer ? 'text-accent-foreground' : 'text-destructive'}`}>
             {selected === movement.quiz.answer ? 'Correct!' : 'Not quite.'}
           </p>
           <p className="mt-1 text-sm text-foreground/60">{movement.quiz.explanation}</p>

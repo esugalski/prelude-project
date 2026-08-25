@@ -303,12 +303,12 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                     </span>
                   )}
                   {enrollment.status === 'Matched' && (
-                    <span className="inline-flex items-center gap-1.5 text-green-700">
+                    <span className="inline-flex items-center gap-1.5 text-accent-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Matched with a volunteer
                     </span>
                   )}
                   {enrollment.status === 'Active' && (
-                    <span className="inline-flex items-center gap-1.5 text-green-700">
+                    <span className="inline-flex items-center gap-1.5 text-accent-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Lessons active
                     </span>
                   )}
@@ -384,7 +384,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                     <p className="text-xs uppercase tracking-[0.12em] text-secondary">{slot.instrument_specialty}</p>
                     <h3 className="mt-1.5 font-display text-lg tracking-tight">{slot.volunteer_name}</h3>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-sm">Open</span>
+                  <span className="text-xs px-2 py-1 bg-accent/20 text-accent-foreground rounded-sm">Open</span>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-sm text-foreground/60">
                   <Clock className="w-4 h-4" strokeWidth={1.5} />
@@ -722,7 +722,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
                 </span>
               )}
               {application?.status === 'Denied' && (
-                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-red-50 text-red-700 rounded-sm">
+                <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-destructive/10 text-destructive rounded-sm">
                   <XCircle className="w-3.5 h-3.5" /> Denied
                 </span>
               )}
@@ -802,8 +802,8 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
               <Reveal>
                 <div className="grid gap-4 md:grid-cols-2 mb-8">
                   {trainingComplete ? (
-                    <div className="border border-green-300 rounded-sm p-6 bg-green-50 flex items-start gap-4">
-                      <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0" strokeWidth={1.5} />
+                    <div className="border border-accent/50 rounded-sm p-6 bg-accent/20 flex items-start gap-4">
+                      <CheckCircle2 className="w-6 h-6 text-accent-foreground shrink-0" strokeWidth={1.5} />
                       <div>
                         <h3 className="font-display text-lg tracking-tight">Training complete</h3>
                         <p className="mt-1 text-sm text-foreground/60">You've finished all six training modules. You're ready to teach!</p>
@@ -921,7 +921,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
                                   <div className="flex flex-wrap items-center justify-end gap-3">
                                     {application?.meet_link && <StartSessionButton meetLink={application.meet_link} compact />}
                                     {session.confirmed ? (
-                                      <span className="inline-flex items-center gap-1.5 text-xs text-green-700">
+                                      <span className="inline-flex items-center gap-1.5 text-xs text-accent-foreground">
                                         <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
                                       </span>
                                     ) : (
@@ -965,7 +965,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
                     <p className="text-xs text-foreground/50 mt-0.5">Total hours volunteered</p>
                   </div>
                   <div className="border border-border rounded-sm p-5 bg-card/40">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" strokeWidth={1.5} />
+                    <CheckCircle2 className="w-5 h-5 text-accent-foreground" strokeWidth={1.5} />
                     <p className="mt-2 text-3xl font-display tracking-tight">{totalSessions}</p>
                     <p className="text-xs text-foreground/50 mt-0.5">Sessions confirmed</p>
                   </div>
@@ -1007,7 +1007,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
                           </div>
                           <div className="flex items-center gap-3">
                             {session.confirmed ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs text-green-700">
+                              <span className="inline-flex items-center gap-1.5 text-xs text-accent-foreground">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
                               </span>
                             ) : (
@@ -1215,7 +1215,7 @@ function MeetLinkCard({ volunteerId, meetLink, onSaved }: {
             </button>
           </form>
           {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-          {saved && <p className="mt-2 text-sm text-green-700">Meet link saved. Your Start session buttons are ready.</p>}
+          {saved && <p className="mt-2 text-sm text-accent-foreground">Meet link saved. Your Start session buttons are ready.</p>}
         </div>
       </div>
     </div>
@@ -1438,7 +1438,7 @@ function VolunteerCalendarTab({ userEmail, application, slots, onReload }: {
             </div>
           </div>
           {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-          {saved && <p className="mt-4 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 className="w-4 h-4" /> Availability saved.</p>}
+          {saved && <p className="mt-4 flex items-center gap-2 text-sm text-accent-foreground"><CheckCircle2 className="w-4 h-4" /> Availability saved.</p>}
           <button type="submit" disabled={saving} className="mt-5 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-secondary text-secondary-foreground font-semibold rounded-sm hover:bg-secondary/90 transition-colors disabled:opacity-40">
             <Plus className="w-4 h-4" /> {saving ? 'Saving...' : 'Add to calendar'}
           </button>
@@ -2252,12 +2252,12 @@ function AdminVolunteers({
                     </span>
                   )}
                   {app.status === 'Approved' && (
-                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-sm">
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-accent/20 text-accent-foreground rounded-sm">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Approved
                     </span>
                   )}
                   {app.status === 'Denied' && (
-                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-red-50 text-red-700 rounded-sm">
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-destructive/10 text-destructive rounded-sm">
                       <XCircle className="w-3.5 h-3.5" /> Denied
                     </span>
                   )}
@@ -2294,13 +2294,13 @@ function AdminVolunteers({
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => updateAppStatus(app.id, 'Approved')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-sm hover:bg-green-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-foreground text-white text-sm font-semibold rounded-sm hover:bg-accent-foreground/90 transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4" /> Approve
                   </button>
                   <button
                     onClick={() => updateAppStatus(app.id, 'Denied')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 border border-red-300 text-red-700 text-sm font-semibold rounded-sm hover:bg-red-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 border border-destructive/40 text-destructive text-sm font-semibold rounded-sm hover:bg-destructive/10 transition-colors"
                   >
                     <XCircle className="w-4 h-4" /> Deny
                   </button>
@@ -2317,7 +2317,7 @@ function AdminVolunteers({
               {app.status === 'Denied' && (
                 <button
                   onClick={() => updateAppStatus(app.id, 'Approved')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-sm hover:bg-green-700 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-foreground text-white text-sm font-semibold rounded-sm hover:bg-accent-foreground/90 transition-colors shrink-0"
                 >
                   <CheckCircle2 className="w-4 h-4" /> Approve
                 </button>
@@ -2642,7 +2642,7 @@ function AdminDirectory({
                       </td>
                       <td className="px-4 py-3">
                         {matchedEnrollmentIds.includes(e.id) ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-700">
+                          <span className="inline-flex items-center gap-1 text-xs text-accent-foreground">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Yes
                           </span>
                         ) : (
@@ -2720,14 +2720,14 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (status === 'Approved' || status === 'Matched' || status === 'Active') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded-sm">
+      <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-accent/20 text-accent-foreground rounded-sm">
         <CheckCircle2 className="w-3 h-3" /> {status}
       </span>
     );
   }
   if (status === 'Denied') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-red-50 text-red-700 rounded-sm">
+      <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-destructive/10 text-destructive rounded-sm">
         <XCircle className="w-3 h-3" /> Denied
       </span>
     );

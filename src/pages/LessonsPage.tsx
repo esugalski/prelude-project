@@ -145,7 +145,7 @@ export function LessonsPage() {
             {form.child_name.split(' ')[0]}. Our coordinator will contact you at{' '}
             {form.parent_email} to match your child with a teacher and arrange their first lesson.
           </p>
-          <Link to="/login" className="track mt-8 inline-flex items-center gap-2 text-primary font-semibold">
+          <Link to="/login" className="mt-8 inline-flex items-center gap-2 text-primary font-semibold">
             Log in to your portal <ArrowRight className="w-4 h-4" />
           </Link>
         </Reveal>

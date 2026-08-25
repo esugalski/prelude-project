@@ -94,7 +94,7 @@ export function ProfileCard({
 
       {/* Hobbies */}
       {hobbies && (
-        <ProfileSection icon={<Heart className="w-3.5 h-3.5" />} label={isVolunteer ? 'What they like to do' : 'What they like to do'}>
+        <ProfileSection icon={<Heart className="w-3.5 h-3.5" />} label="What they like to do">
           {hobbies}
         </ProfileSection>
       )}

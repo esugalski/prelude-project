@@ -206,7 +206,7 @@ export function SchedulePage() {
             </div>
 
             {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
-            {saved && <p className="mt-4 flex items-center gap-2 text-sm text-green-700"><CheckCircle2 className="w-4 h-4" /> Availability saved.</p>}
+            {saved && <p className="mt-4 flex items-center gap-2 text-sm text-accent-foreground"><CheckCircle2 className="w-4 h-4" /> Availability saved.</p>}
             <button type="submit" disabled={saving || loading} className="mt-5 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-secondary text-secondary-foreground font-semibold rounded-sm hover:bg-secondary/90 transition-colors disabled:opacity-40">
               <Plus className="w-4 h-4" /> {saving ? 'Saving...' : 'Add to calendar'}
             </button>

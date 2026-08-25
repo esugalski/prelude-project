@@ -12,7 +12,7 @@ export function CTASection({ title, subtitle }: CTASectionProps) {
       <div className="relative overflow-hidden rounded-sm border border-border">
         <div className="absolute inset-0">
           <img
-            src="https://images.pexels.com/photos/7573928/pexels-photo-7573928.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
+            src="https://images.pexels.com/photos/10222305/pexels-photo-10222305.jpeg?auto=compress&cs=tinysrgb&h=650&w=940"
             alt=""
             className="w-full h-full object-cover"
           />
