@@ -173,7 +173,10 @@ function MemberPortal({ userEmail }: { userEmail: string }) {
 
 function StudentPortal({ userEmail }: { userEmail: string }) {
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
+  const [matchByEnrollment, setMatchByEnrollment] = useState<Record<string, VolunteerProfileView>>({});
+  const [meetLinkByEnrollment, setMeetLinkByEnrollment] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
@@ -182,9 +185,20 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-  const [matchedVolunteer, setMatchedVolunteer] = useState<VolunteerProfileView | null>(null);
-  const [volunteerMeetLink, setVolunteerMeetLink] = useState('');
   const [showVolunteerProfile, setShowVolunteerProfile] = useState(false);
+
+  const selectedEnrollment = enrollments.find((e) => e.id === selectedEnrollmentId) ?? null;
+  const matchedVolunteer = selectedEnrollmentId ? matchByEnrollment[selectedEnrollmentId] ?? null : null;
+  const volunteerMeetLink = selectedEnrollmentId ? meetLinkByEnrollment[selectedEnrollmentId] ?? '' : '';
+
+  const refetchEnrollments = async () => {
+    const { data } = await supabase
+      .from('lesson_enrollments')
+      .select('*')
+      .eq('parent_email', userEmail)
+      .order('created_at', { ascending: true });
+    if (data) setEnrollments(data);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -197,33 +211,49 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         .from('lesson_enrollments')
         .select('*')
         .eq('parent_email', userEmail)
-        .maybeSingle(),
+        .order('created_at', { ascending: true }),
     ]).then(async ([slotsRes, enrollRes]) => {
       setSlots(slotsRes.data || []);
-      const enroll = enrollRes.data;
-      setEnrollment(enroll);
+      const enrolls = enrollRes.data || [];
+      setEnrollments(enrolls);
+      setSelectedEnrollmentId((prev) =>
+        prev && enrolls.some((e) => e.id === prev) ? prev : enrolls[0]?.id ?? null
+      );
 
-      if (enroll && (enroll.status === 'Matched' || enroll.status === 'Active')) {
+      const matchable = enrolls
+        .filter((e) => e.status === 'Matched' || e.status === 'Active')
+        .map((e) => e.id);
+
+      if (matchable.length > 0) {
         const { data: matchData } = await supabase
           .from('matches')
-          .select('volunteer_id')
-          .eq('enrollment_id', enroll.id)
-          .maybeSingle();
+          .select('volunteer_id, enrollment_id')
+          .in('enrollment_id', matchable);
 
-        if (matchData?.volunteer_id) {
+        const volunteerIds = [...new Set((matchData || []).map((m) => m.volunteer_id))];
+
+        if (volunteerIds.length > 0) {
           const { data: volData } = await supabase
             .from('volunteer_applications')
-            .select('full_name, email, phone, instrument_specialty, experience_years, bio, profile_bio, profile_image_url, profile_hobbies, profile_teaching_methods, meet_link')
-            .eq('id', matchData.volunteer_id)
-            .maybeSingle();
+            .select('id, full_name, email, phone, instrument_specialty, experience_years, bio, profile_bio, profile_image_url, profile_hobbies, profile_teaching_methods, meet_link')
+            .in('id', volunteerIds);
 
-          if (volData) {
-            setMatchedVolunteer({
-              kind: 'volunteer',
-              ...volData,
-            } as VolunteerProfileView);
-            setVolunteerMeetLink(volData.meet_link || '');
-          }
+          const volById: Record<string, NonNullable<typeof volData>[number]> = {};
+          (volData || []).forEach((v) => {
+            volById[v.id] = v;
+          });
+
+          const matchMap: Record<string, VolunteerProfileView> = {};
+          const meetMap: Record<string, string> = {};
+          (matchData || []).forEach((m) => {
+            const v = volById[m.volunteer_id];
+            if (v) {
+              matchMap[m.enrollment_id] = { kind: 'volunteer', ...v } as VolunteerProfileView;
+              meetMap[m.enrollment_id] = v.meet_link || '';
+            }
+          });
+          setMatchByEnrollment(matchMap);
+          setMeetLinkByEnrollment(meetMap);
         }
       }
 
@@ -237,12 +267,13 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
     if (!slot) return;
     setSubmitting(true);
     setError('');
-    const name = studentName || enrollment?.parent_name || '';
-    const email = userEmail || enrollment?.parent_email || '';
+    const name = studentName || selectedEnrollment?.parent_name || '';
+    const email = userEmail || selectedEnrollment?.parent_email || '';
     const { error: insertError } = await supabase.from('slot_requests').insert({
       slot_id: requestingId,
       student_name: name,
       student_email: email,
+      enrollment_id: selectedEnrollmentId,
       notes,
       status: 'Pending',
     });
@@ -263,7 +294,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
             <BookOpen className="w-6 h-6 text-primary" strokeWidth={1.5} />
             <h3 className="mt-3 font-display text-lg tracking-tight">Browse courses</h3>
             <p className="mt-1 text-sm text-foreground/60">Move through free modular courses at your own pace.</p>
-            <Link to="/courses" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:gap-2.5 transition-all">
+            <Link to={`/courses?enrollmentId=${selectedEnrollment?.id ?? ''}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:gap-2.5 transition-all">
               Open courses <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -278,7 +309,28 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </div>
       </Reveal>
 
-      {enrollment && (
+      {enrollments.length > 1 && (
+        <Reveal>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {enrollments.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setSelectedEnrollmentId(e.id)}
+                className={`px-4 py-2.5 text-sm font-medium rounded-sm border transition-colors ${
+                  selectedEnrollmentId === e.id
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background border-border hover:bg-muted'
+                }`}
+              >
+                {e.child_name}
+              </button>
+            ))}
+          </div>
+        </Reveal>
+      )}
+
+      {selectedEnrollment && (
         <Reveal>
           <div className="border border-border rounded-sm p-6 bg-card/40 mb-10">
             <div className="flex items-center gap-2 mb-3">
@@ -288,26 +340,26 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-foreground/50">Child</p>
-                <p className="text-sm font-medium">{enrollment.child_name}, age {enrollment.child_age}</p>
+                <p className="text-sm font-medium">{selectedEnrollment.child_name}, age {selectedEnrollment.child_age}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground/50">Instrument interest</p>
-                <p className="text-sm font-medium">{enrollment.instrument_interest || 'Not specified'}</p>
+                <p className="text-sm font-medium">{selectedEnrollment.instrument_interest || 'Not specified'}</p>
               </div>
               <div>
                 <p className="text-xs text-foreground/50">Status</p>
                 <p className="text-sm font-medium">
-                  {enrollment.status === 'Pending' && (
+                  {selectedEnrollment.status === 'Pending' && (
                     <span className="inline-flex items-center gap-1.5 text-amber-700">
                       <Clock className="w-3.5 h-3.5" /> Pending review
                     </span>
                   )}
-                  {enrollment.status === 'Matched' && (
+                  {selectedEnrollment.status === 'Matched' && (
                     <span className="inline-flex items-center gap-1.5 text-accent-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Matched with a volunteer
                     </span>
                   )}
-                  {enrollment.status === 'Active' && (
+                  {selectedEnrollment.status === 'Active' && (
                     <span className="inline-flex items-center gap-1.5 text-accent-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Lessons active
                     </span>
@@ -341,23 +393,26 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </Reveal>
       )}
 
-      {enrollment && (
+      {selectedEnrollment && (
         <Reveal>
           <div className="mb-10">
             <h3 className="font-display text-2xl tracking-tight flex items-center gap-2 mb-1">
               <UserCircle className="w-6 h-6 text-primary" strokeWidth={1.5} />
-              {enrollment.child_name}'s profile
+              {selectedEnrollment.child_name}'s profile
             </h3>
             <p className="text-sm text-foreground/60 mb-5">
               This is what your child's teacher will see. Add a photo and tell them about your child.
             </p>
             <div className="border border-border rounded-sm p-6 bg-background">
               <ProfileEditor
+                key={selectedEnrollment.id}
                 kind="student"
-                initialHobbies={enrollment.profile_hobbies || ''}
-                initialLearningStyle={enrollment.profile_learning_style || ''}
-                initialImageUrl={enrollment.profile_image_url || ''}
-                initialInstruments={enrollment.instrument_interest || ''}
+                enrollmentId={selectedEnrollment.id}
+                initialHobbies={selectedEnrollment.profile_hobbies || ''}
+                initialLearningStyle={selectedEnrollment.profile_learning_style || ''}
+                initialImageUrl={selectedEnrollment.profile_image_url || ''}
+                initialInstruments={selectedEnrollment.instrument_interest || ''}
+                onSaved={refetchEnrollments}
               />
             </div>
           </div>
@@ -431,9 +486,9 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 <input
                   type="text"
                   required
-                  value={studentName || enrollment?.parent_name || ''}
+                  value={studentName || selectedEnrollment?.parent_name || ''}
                   onChange={(e) => setStudentName(e.target.value)}
-                  placeholder={enrollment?.parent_name || ''}
+                  placeholder={selectedEnrollment?.parent_name || ''}
                   className="mt-1.5 w-full px-4 py-2.5 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>

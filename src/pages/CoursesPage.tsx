@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, Lightbulb, Trophy, X } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { courseData, courseTitles, courseDescriptions, instrumentFamilies } from '@/data/courses';
@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/auth';
 
 export function CoursesPage() {
   const [filter, setFilter] = useState('All');
+  const [searchParams] = useSearchParams();
+  const enrollmentId = searchParams.get('enrollmentId') || '';
   const families = Object.keys(courseData);
   const visible = filter === 'All' ? families : families.filter((f) => f === filter);
 
@@ -53,7 +55,7 @@ export function CoursesPage() {
           {visible.map((family, i) => (
             <Reveal key={family} delay={i * 0.05}>
               <Link
-                to={`/courses/${family.toLowerCase()}`}
+                to={`/courses/${family.toLowerCase()}${enrollmentId ? `?enrollmentId=${enrollmentId}` : ''}`}
                 className="group block border border-border rounded-sm overflow-hidden bg-background hover:border-primary/40 transition-colors"
               >
                 <div className="p-6">
@@ -79,6 +81,9 @@ export function CoursesPage() {
 export function CourseDetailPage() {
   const { family } = useParams<{ family: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const enrollmentId = searchParams.get('enrollmentId') || '';
+  const enrollmentQuery = enrollmentId ? `?enrollmentId=${enrollmentId}` : '';
   const familyKey = family
     ? family.charAt(0).toUpperCase() + family.slice(1).toLowerCase()
     : '';
@@ -104,7 +109,7 @@ export function CourseDetailPage() {
         </div>
         <div className="relative mx-auto max-w-7xl px-6 pt-32 pb-10 md:pt-40">
           <Reveal>
-            <Link to="/courses" className="inline-flex items-center gap-1.5 text-sm text-foreground/60 hover:text-primary transition-colors">
+            <Link to={`/courses${enrollmentQuery}`} className="inline-flex items-center gap-1.5 text-sm text-foreground/60 hover:text-primary transition-colors">
               <ArrowLeft className="w-4 h-4" /> All courses
             </Link>
             <p className="mt-6 text-xs uppercase tracking-[0.22em] text-secondary">{familyKey}</p>
@@ -119,7 +124,7 @@ export function CourseDetailPage() {
           {movements.map((m, i) => (
             <Reveal key={i} delay={i * 0.05}>
               <button
-                onClick={() => navigate(`/courses/${family}/movements/${i}`)}
+                onClick={() => navigate(`/courses/${family}/movements/${i}${enrollmentQuery}`)}
                 className="w-full text-left flex items-center gap-4 p-5 border border-border rounded-sm bg-background hover:border-primary/40 hover:bg-muted/40 transition-colors group"
               >
                 <span className="font-display text-3xl text-primary/30 group-hover:text-primary/50 transition-colors">
@@ -143,6 +148,9 @@ export function MovementPage() {
   const { family, index } = useParams<{ family: string; index: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedEnrollmentId = searchParams.get('enrollmentId') || '';
+  const enrollmentQuery = requestedEnrollmentId ? `?enrollmentId=${requestedEnrollmentId}` : '';
   const familyKey = family
     ? family.charAt(0).toUpperCase() + family.slice(1).toLowerCase()
     : '';
@@ -153,15 +161,28 @@ export function MovementPage() {
 
   useEffect(() => {
     if (!user) return;
+    if (requestedEnrollmentId) {
+      supabase
+        .from('lesson_enrollments')
+        .select('id')
+        .eq('id', requestedEnrollmentId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setEnrollmentId(data.id);
+        });
+      return;
+    }
     supabase
       .from('lesson_enrollments')
       .select('id')
       .eq('user_id', user.id)
-      .maybeSingle()
+      .order('created_at', { ascending: true })
+      .limit(1)
       .then(({ data }) => {
-        if (data) setEnrollmentId(data.id);
+        if (data && data.length > 0) setEnrollmentId(data[0].id);
       });
-  }, [user]);
+  }, [user, requestedEnrollmentId]);
 
   useEffect(() => {
     if (!enrollmentId || !familyKey) return;
@@ -203,7 +224,7 @@ export function MovementPage() {
   return (
     <section className="mx-auto max-w-2xl px-6 pt-32 pb-24 md:pt-40">
       <Link
-        to={`/courses/${family}`}
+        to={`/courses/${family}${enrollmentQuery}`}
         className="inline-flex items-center gap-1.5 text-sm text-foreground/60 hover:text-primary transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> {courseTitles[familyKey]}
@@ -256,7 +277,7 @@ export function MovementPage() {
       <div className="mt-10 flex items-center justify-between">
         {idx > 0 ? (
           <button
-            onClick={() => navigate(`/courses/${family}/movements/${idx - 1}`)}
+            onClick={() => navigate(`/courses/${family}/movements/${idx - 1}${enrollmentQuery}`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 border border-border rounded-sm text-sm font-medium hover:bg-muted transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Previous
@@ -271,7 +292,7 @@ export function MovementPage() {
           </div>
         ) : (
           <button
-            onClick={() => navigate(`/courses/${family}/movements/${idx + 1}`)}
+            onClick={() => navigate(`/courses/${family}/movements/${idx + 1}${enrollmentQuery}`)}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-secondary text-secondary-foreground rounded-sm text-sm font-medium hover:bg-secondary/90 transition-colors"
           >
             Next <ArrowRight className="w-4 h-4" />

@@ -17,6 +17,7 @@ const studentInstrumentOptions = [...instrumentOptions, 'Not sure yet'];
 
 interface ProfileEditorProps {
   kind: 'volunteer' | 'student';
+  enrollmentId?: string;
   initialBio?: string;
   initialImageUrl?: string;
   initialHobbies?: string;
@@ -28,6 +29,7 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({
   kind,
+  enrollmentId,
   initialBio = '',
   initialImageUrl = '',
   initialHobbies = '',
@@ -119,6 +121,7 @@ export function ProfileEditor({
           p_learning_style: learningStyle,
           p_image_url: imageUrl,
           p_instrument_interest: instrumentsStr,
+          p_enrollment_id: enrollmentId,
         });
         if (!data) throw new Error('Save failed');
       }
