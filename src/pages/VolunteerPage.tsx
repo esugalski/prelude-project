@@ -146,8 +146,14 @@ export function VolunteerPage() {
       }
 
       const { error: appError } = await supabase.from('volunteer_applications').insert({
-        ...form,
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        instrument_specialty: form.instrument_specialty,
         experience_years: Number(form.experience_years) || 0,
+        teaching_experience: form.teaching_experience,
+        availability: form.availability,
+        bio: form.bio,
         status: 'Pending',
         user_id: userId,
       });
