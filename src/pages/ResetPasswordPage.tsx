@@ -86,7 +86,7 @@ export function ResetPasswordPage() {
           </Link>
 
           <div className="mt-8 flex items-center gap-2">
-            <img src={iconMark} alt="" className="w-6 h-6 object-contain" />
+            <img src={iconMark} alt="" className="w-9 h-9 object-contain" />
             <span className="font-display text-xl font-semibold">Melody Mission</span>
           </div>
 

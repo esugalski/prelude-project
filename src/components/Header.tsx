@@ -38,7 +38,7 @@ export function Header() {
     >
       <nav className="mx-auto max-w-7xl px-6 h-16 md:h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <img src={iconMark} alt="" className="w-6 h-6 object-contain transition-transform group-hover:scale-110" />
+          <img src={iconMark} alt="" className="w-10 h-10 object-contain transition-transform group-hover:scale-110" />
           <span className="font-display text-lg tracking-tight font-semibold">
             Melody Mission
           </span>

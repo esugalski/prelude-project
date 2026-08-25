@@ -16,7 +16,7 @@ export function Footer() {
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">
             <div className="flex items-center gap-2">
-              <img src={iconMark} alt="" className="w-6 h-6 object-contain" />
+              <img src={iconMark} alt="" className="w-9 h-9 object-contain" />
               <span className="font-display text-xl font-semibold">Melody Mission</span>
             </div>
             <p className="mt-5 max-w-sm text-background/70 text-base leading-relaxed">
