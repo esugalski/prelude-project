@@ -26,7 +26,9 @@ export function Footer() {
             <div className="mt-6 space-y-2 text-sm text-background/60">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                thepreludeproject3@gmail.com
+                <a href="mailto:melodymission3@gmail.com" className="hover:text-primary transition-colors">
+                  melodymission3@gmail.com
+                </a>
               </div>
             </div>
           </div>

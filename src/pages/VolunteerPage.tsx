@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   User,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
 
 const specialties = [
   'Piano / Keys',
@@ -47,6 +48,7 @@ interface AvailabilitySlot {
 }
 
 export function VolunteerPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -66,6 +68,12 @@ export function VolunteerPage() {
   });
   const [password, setPassword] = useState('');
 
+  useEffect(() => {
+    if (user?.email) {
+      setForm((f) => ({ ...f, email: user.email! }));
+    }
+  }, [user]);
+
   const update = (field: string, value: string | number) =>
     setForm((f) => ({ ...f, [field]: value }));
 
@@ -84,44 +92,57 @@ export function VolunteerPage() {
     setSubmitting(true);
     setError('');
 
-    let userId: string | undefined;
+    let userId: string | undefined = user?.id;
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password,
-      });
-
-      if (authError) {
-        if (authError.message === 'User already registered') {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: form.email,
-            password,
-          });
-          if (signInError) {
-            setError('An account with this email already exists. Please log in with your previous password, or use a different email.');
-            setSubmitting(false);
-            return;
-          }
-          userId = signInData.user?.id;
-
-          const { data: existing } = await supabase
-            .from('volunteer_applications')
-            .select('id')
-            .eq('email', form.email)
-            .maybeSingle();
-          if (existing) {
-            setError('You already have a volunteer application on file. Please log in to your portal.');
-            setSubmitting(false);
-            return;
-          }
-        } else {
-          setError(authError.message);
+      if (user) {
+        const { data: existing } = await supabase
+          .from('volunteer_applications')
+          .select('id')
+          .eq('email', form.email)
+          .maybeSingle();
+        if (existing) {
+          setError('You already have a volunteer application on file. Please log in to your portal.');
           setSubmitting(false);
           return;
         }
       } else {
-        userId = authData.user?.id;
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: form.email,
+          password,
+        });
+
+        if (authError) {
+          if (authError.message === 'User already registered') {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: form.email,
+              password,
+            });
+            if (signInError) {
+              setError('An account with this email already exists. Please log in with your previous password, or use a different email.');
+              setSubmitting(false);
+              return;
+            }
+            userId = signInData.user?.id;
+
+            const { data: existing } = await supabase
+              .from('volunteer_applications')
+              .select('id')
+              .eq('email', form.email)
+              .maybeSingle();
+            if (existing) {
+              setError('You already have a volunteer application on file. Please log in to your portal.');
+              setSubmitting(false);
+              return;
+            }
+          } else {
+            setError(authError.message);
+            setSubmitting(false);
+            return;
+          }
+        } else {
+          userId = authData.user?.id;
+        }
       }
 
       const { error: appError } = await supabase.from('volunteer_applications').insert({
@@ -230,10 +251,14 @@ export function VolunteerPage() {
                   <input
                     type="email"
                     required
+                    disabled={!!user}
                     value={form.email}
                     onChange={(e) => update('email', e.target.value)}
-                    className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                   />
+                  {user && (
+                    <p className="mt-1.5 text-xs text-foreground/50">Using your account email.</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground/70">Phone</label>
@@ -380,20 +405,22 @@ export function VolunteerPage() {
                   <SlotBuilder slots={slots} setSlots={setSlots} defaultSpecialty={form.instrument_specialty} />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-foreground/70">Create a password</label>
-                  <p className="mt-1 text-xs text-foreground/50">
-                    You'll use this with your email to log in to the volunteer portal.
-                  </p>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
+                {!user && (
+                  <div>
+                    <label className="text-sm font-medium text-foreground/70">Create a password</label>
+                    <p className="mt-1 text-xs text-foreground/50">
+                      You'll use this with your email to log in to the volunteer portal.
+                    </p>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                )}
 
                 {error && <p className="text-sm text-destructive">{error}</p>}
 

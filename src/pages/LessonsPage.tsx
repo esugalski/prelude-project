@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Music2, BookOpen } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
 
 const instrumentOptions = [
   'Piano / Keys',
@@ -30,6 +31,7 @@ const benefits = [
 ];
 
 export function LessonsPage() {
+  const { user } = useAuth();
   const [form, setForm] = useState({
     child_name: '',
     child_age: 8 as number | string,
@@ -43,6 +45,12 @@ export function LessonsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (user?.email) {
+      setForm((f) => ({ ...f, parent_email: user.email! }));
+    }
+  }, [user]);
 
   const update = (field: string, value: string | number) =>
     setForm((f) => ({ ...f, [field]: value }));
@@ -75,44 +83,50 @@ export function LessonsPage() {
     setSubmitting(true);
     setError('');
 
-    let userId: string | undefined;
+    let userId: string | undefined = user?.id;
+    let isReturningUser = !!user;
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.parent_email,
-        password,
-      });
+      if (!user) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: form.parent_email,
+          password,
+        });
 
-      if (authError) {
-        if (authError.message === 'User already registered') {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: form.parent_email,
-            password,
-          });
-          if (signInError) {
-            setError('An account with this email already exists. Please log in with your previous password, or use a different email.');
-            setSubmitting(false);
-            return;
-          }
-          userId = signInData.user?.id;
-
-          const { data: existing } = await supabase
-            .from('lesson_enrollments')
-            .select('id')
-            .eq('parent_email', form.parent_email)
-            .maybeSingle();
-          if (existing) {
-            setError('You already have an enrollment on file. Please log in to your portal.');
+        if (authError) {
+          if (authError.message === 'User already registered') {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: form.parent_email,
+              password,
+            });
+            if (signInError) {
+              setError('An account with this email already exists. Please log in with your previous password, or use a different email.');
+              setSubmitting(false);
+              return;
+            }
+            userId = signInData.user?.id;
+            isReturningUser = true;
+          } else {
+            setError(authError.message);
             setSubmitting(false);
             return;
           }
         } else {
-          setError(authError.message);
+          userId = authData.user?.id;
+        }
+      }
+
+      if (isReturningUser) {
+        const { data: existing } = await supabase
+          .from('lesson_enrollments')
+          .select('id')
+          .eq('parent_email', form.parent_email)
+          .maybeSingle();
+        if (existing) {
+          setError('You already have an enrollment on file. Please log in to your portal.');
           setSubmitting(false);
           return;
         }
-      } else {
-        userId = authData.user?.id;
       }
 
       const { error: insertError } = await supabase.from('lesson_enrollments').insert({
@@ -257,10 +271,14 @@ export function LessonsPage() {
                 <input
                   type="email"
                   required
+                  disabled={!!user}
                   value={form.parent_email}
                   onChange={(e) => update('parent_email', e.target.value)}
-                  className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
                 />
+                {user && (
+                  <p className="mt-1.5 text-xs text-foreground/50">Using your account email.</p>
+                )}
               </div>
 
               <div>
@@ -295,20 +313,22 @@ export function LessonsPage() {
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground/70">Create a password</label>
-                <p className="mt-1 text-xs text-foreground/50">
-                  You'll use this with your email to log in to the student portal.
-                </p>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
+              {!user && (
+                <div>
+                  <label className="text-sm font-medium text-foreground/70">Create a password</label>
+                  <p className="mt-1 text-xs text-foreground/50">
+                    You'll use this with your email to log in to the student portal.
+                  </p>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
