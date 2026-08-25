@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 70% 99%;
+    --foreground: 278 42% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 278 42% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 278 42% 15%;
+    --primary: 330 85% 64%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 70% 58%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 38 50% 95%;
+    --muted-foreground: 278 15% 42%;
+    --accent: 165 55% 85%;
+    --accent-foreground: 165 60% 22%;
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 38 40% 90%;
+    --input: 38 40% 90%;
+    --ring: 330 85% 64%;
+    --radius: 0.5rem;
+    --font-heading: "Fraunces", ui-serif, Georgia, serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Fraunces", ui-serif, Georgia, serif;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
