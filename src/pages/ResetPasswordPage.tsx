@@ -17,10 +17,17 @@ export function ResetPasswordPage() {
   const [mode, setMode] = useState<'request' | 'reset'>('request');
 
   useEffect(() => {
-    const type = searchParams.get('type');
-    if (type === 'recovery') {
+    if (searchParams.get('type') === 'recovery') {
       setMode('reset');
     }
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('reset');
+      }
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, [searchParams]);
 
   const handleRequestReset = async (e: React.FormEvent) => {
