@@ -44,6 +44,18 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { courseData, courseTitles, courseDescriptions, instrumentFamilies } from '@/data/courses';
 
+const childInstrumentOptions = [
+  'Piano / Keys',
+  'Violin',
+  'Viola',
+  'Cello',
+  'Flute',
+  'Clarinet',
+  'Voice',
+  'Other',
+  'Not sure yet',
+];
+
 interface Slot {
   id: string;
   volunteer_name: string;
@@ -172,6 +184,7 @@ function MemberPortal({ userEmail }: { userEmail: string }) {
 }
 
 function StudentPortal({ userEmail }: { userEmail: string }) {
+  const { user } = useAuth();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
@@ -180,6 +193,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
+  const [showAddChild, setShowAddChild] = useState(false);
 
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -309,9 +323,9 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </div>
       </Reveal>
 
-      {enrollments.length > 1 && (
+      {enrollments.length > 0 && (
         <Reveal>
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
             {enrollments.map((e) => (
               <button
                 key={e.id}
@@ -326,6 +340,13 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 {e.child_name}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setShowAddChild(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-sm border border-dashed border-border text-foreground/60 hover:border-primary hover:text-primary transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add child
+            </button>
           </div>
         </Reveal>
       )}
@@ -541,6 +562,19 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </Reveal>
       )}
 
+      {showAddChild && (
+        <AddChildModal
+          parentName={enrollments[0]?.parent_name ?? ''}
+          parentEmail={userEmail}
+          userId={user?.id}
+          onClose={() => setShowAddChild(false)}
+          onAdded={(newId) => {
+            setShowAddChild(false);
+            refetchEnrollments().then(() => setSelectedEnrollmentId(newId));
+          }}
+        />
+      )}
+
       {showVolunteerProfile && matchedVolunteer && (
         <>
           <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm" onClick={() => setShowVolunteerProfile(false)} />
@@ -558,6 +592,166 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </>
       )}
     </>
+  );
+}
+
+function AddChildModal({ parentName, parentEmail, userId, onClose, onAdded }: {
+  parentName: string;
+  parentEmail: string;
+  userId?: string;
+  onClose: () => void;
+  onAdded: (newEnrollmentId: string) => void;
+}) {
+  const [childName, setChildName] = useState('');
+  const [childAge, setChildAge] = useState<number | string>(8);
+  const [instruments, setInstruments] = useState<string[]>([childInstrumentOptions[0]]);
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const ageInvalid = (() => {
+    const n = Number(childAge);
+    return childAge === '' || isNaN(n) || n < 5 || n > 13;
+  })();
+
+  const toggleInstrument = (opt: string) => {
+    setInstruments((prev) => {
+      let next = prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt];
+      if (opt === 'Not sure yet' && next.includes(opt)) {
+        next = [opt];
+      } else if (opt !== 'Not sure yet' && next.includes(opt)) {
+        next = next.filter((x) => x !== 'Not sure yet');
+      }
+      if (next.length === 0) next = [childInstrumentOptions[0]];
+      return next;
+    });
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (ageInvalid) {
+      setError('Our program is for children ages 5–13. Please enter an age in that range.');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    const { data, error: insertError } = await supabase
+      .from('lesson_enrollments')
+      .insert({
+        child_name: childName,
+        child_age: Number(childAge),
+        parent_name: parentName,
+        parent_email: parentEmail,
+        instrument_interest: instruments.join(', '),
+        notes,
+        status: 'Pending',
+        user_id: userId,
+      })
+      .select('id')
+      .single();
+    setSubmitting(false);
+    if (insertError || !data) {
+      setError('Your child could not be added. Please try again.');
+      return;
+    }
+    onAdded(data.id);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-foreground/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-background border border-border rounded-sm p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-2xl tracking-tight">Add a child</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-muted rounded-sm transition-colors" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={submit} className="mt-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-foreground/70">Child's name</label>
+            <input
+              type="text"
+              required
+              value={childName}
+              onChange={(e) => setChildName(e.target.value)}
+              className="mt-1.5 w-full px-4 py-2.5 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground/70">Child's age (5–13)</label>
+            <input
+              type="number"
+              min="5"
+              max="13"
+              required
+              value={childAge}
+              onChange={(e) => setChildAge(e.target.value)}
+              className={`mt-1.5 w-full px-4 py-2.5 border rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring ${
+                ageInvalid ? 'border-destructive' : 'border-input'
+              }`}
+            />
+            {ageInvalid && (
+              <p className="mt-1.5 text-sm text-destructive">
+                Our program is for children ages 5–13. Please enter an age in that range.
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground/70">Instrument interest</label>
+            <p className="mt-1 text-xs text-foreground/50">Choose all that apply.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {childInstrumentOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggleInstrument(opt)}
+                  className={`px-3.5 py-2 text-sm font-medium rounded-sm border transition-colors ${
+                    instruments.includes(opt)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background border-border hover:bg-muted'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground/70">Anything we should know? (optional)</label>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Does your child have any musical background? Any scheduling needs?"
+              className="mt-1.5 w-full px-4 py-2.5 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-border text-sm font-medium rounded-sm hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2.5 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40"
+            >
+              {submitting ? 'Adding...' : 'Add child'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
