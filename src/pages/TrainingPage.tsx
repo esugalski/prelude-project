@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { trainingModules } from '@/data/training';
+import { supabase } from '@/lib/supabase';
 
 export function TrainingPage() {
   const [completed] = useState<boolean[]>(() => {
@@ -165,6 +166,9 @@ export function TrainingModulePage() {
     updated[idx] = true;
     setCompleted(updated);
     localStorage.setItem('prelude-training-progress-v2', JSON.stringify(updated));
+    if (updated.every(Boolean)) {
+      supabase.rpc('complete_volunteer_training').catch(() => {});
+    }
   };
 
   const handleCheck = () => {

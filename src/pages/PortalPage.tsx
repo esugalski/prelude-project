@@ -818,7 +818,11 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
       const stored = localStorage.getItem('prelude-training-progress-v2');
       if (stored) {
         const progress = JSON.parse(stored) as boolean[];
-        setTrainingComplete(progress.length > 0 && progress.every(Boolean));
+        const allDone = progress.length > 0 && progress.every(Boolean);
+        setTrainingComplete(allDone);
+        if (allDone) {
+          supabase.rpc('complete_volunteer_training').catch(() => {});
+        }
       }
     } catch {
       /* ignore */
