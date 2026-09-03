@@ -379,6 +379,16 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                       <Clock className="w-3.5 h-3.5" /> Pending review
                     </span>
                   )}
+                  {selectedEnrollment.status === 'Accepted' && (
+                    <span className="inline-flex items-center gap-1.5 text-accent-foreground">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Accepted — waiting to be matched
+                    </span>
+                  )}
+                  {selectedEnrollment.status === 'Rejected' && (
+                    <span className="inline-flex items-center gap-1.5 text-destructive">
+                      <XCircle className="w-3.5 h-3.5" /> Not accepted
+                    </span>
+                  )}
                   {selectedEnrollment.status === 'Matched' && (
                     <span className="inline-flex items-center gap-1.5 text-accent-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Matched with a volunteer
@@ -2247,6 +2257,11 @@ function AdminPortal() {
     loadData();
   };
 
+  const updateEnrollmentStatus = async (id: string, status: string) => {
+    await supabase.from('lesson_enrollments').update({ status }).eq('id', id);
+    loadData();
+  };
+
   const updateTrainingStatus = async (id: string, trainingCompleted: boolean) => {
     await supabase.from('volunteer_applications').update({
       training_completed: trainingCompleted,
@@ -2289,10 +2304,11 @@ function AdminPortal() {
 
   const pendingApps = applications.filter((a) => a.status === 'Pending');
   const approvedVolunteers = applications.filter((a) => a.status === 'Approved' && isVolunteerReady(a));
-  const unmatchedEnrollments = enrollments.filter(
-    (e) => e.status === 'Pending' && !matches.some((m) => m.enrollment_id === e.id)
-  );
+  const newEnrollments = enrollments.filter((e) => e.status === 'Pending');
   const matchedEnrollmentIds = matches.map((m) => m.enrollment_id);
+  const matchableEnrollments = enrollments.filter(
+    (e) => e.status !== 'Rejected' && !matchedEnrollmentIds.includes(e.id)
+  );
 
   return (
     <>
@@ -2327,9 +2343,9 @@ function AdminPortal() {
               }`}
             >
               <Sparkles className="w-4 h-4" /> New people
-              {(pendingApps.length + unmatchedEnrollments.length) > 0 && (
+              {(pendingApps.length + newEnrollments.length) > 0 && (
                 <span className="ml-1 text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
-                  {pendingApps.length + unmatchedEnrollments.length}
+                  {pendingApps.length + newEnrollments.length}
                 </span>
               )}
             </button>
@@ -2357,9 +2373,9 @@ function AdminPortal() {
               }`}
             >
               <Handshake className="w-4 h-4" /> Matching
-              {unmatchedEnrollments.length > 0 && (
+              {matchableEnrollments.length > 0 && (
                 <span className="ml-1 text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
-                  {unmatchedEnrollments.length}
+                  {matchableEnrollments.length}
                 </span>
               )}
             </button>
@@ -2384,9 +2400,10 @@ function AdminPortal() {
           </div>
         ) : tab === 'new' ? (
           <AdminNewPeople
-            enrollments={enrollments.filter((e) => e.status === 'Pending')}
+            enrollments={newEnrollments}
             applications={pendingApps}
             onSelectRecord={setDetailRecord}
+            updateEnrollmentStatus={updateEnrollmentStatus}
           />
         ) : tab === 'volunteers' ? (
           <AdminVolunteers applications={applications} updateAppStatus={updateAppStatus} updateTrainingStatus={updateTrainingStatus} />
@@ -2424,10 +2441,12 @@ function AdminNewPeople({
   enrollments,
   applications,
   onSelectRecord,
+  updateEnrollmentStatus,
 }: {
   enrollments: Enrollment[];
   applications: VolunteerApp[];
   onSelectRecord: (record: { type: 'child' | 'volunteer'; data: Enrollment | VolunteerApp }) => void;
+  updateEnrollmentStatus: (id: string, status: string) => void;
 }) {
   const people = [
     ...enrollments.map((data) => ({ type: 'child' as const, data })),
@@ -2457,13 +2476,13 @@ function AdminNewPeople({
 
         return (
           <Reveal key={`${person.type}-${person.data.id}`} delay={i * 0.04}>
-            <button
-              type="button"
-              onClick={() => onSelectRecord({ type: person.type, data: person.data })}
-              className="w-full text-left border border-border rounded-sm p-5 bg-background hover:border-primary/40 hover:bg-muted/30 transition-colors"
-            >
+            <div className="border border-border rounded-sm p-5 bg-background hover:border-primary/40 hover:bg-muted/30 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
+                <button
+                  type="button"
+                  onClick={() => onSelectRecord({ type: person.type, data: person.data })}
+                  className="flex-1 text-left"
+                >
                   <div className="flex items-center gap-2">
                     {isStudent ? <Music className="w-4 h-4 text-primary" /> : <Users className="w-4 h-4 text-primary" />}
                     <h3 className="font-display text-lg tracking-tight">{name}</h3>
@@ -2471,10 +2490,36 @@ function AdminNewPeople({
                   </div>
                   <p className="mt-1 text-sm text-foreground/60">{detail}</p>
                   <p className="mt-1 text-xs text-foreground/40">{contact}</p>
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {isStudent && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => updateEnrollmentStatus(person.data.id, 'Accepted')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-foreground text-white text-sm font-semibold rounded-sm hover:bg-accent-foreground/90 transition-colors"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateEnrollmentStatus(person.data.id, 'Rejected')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 border border-destructive/40 text-destructive text-sm font-semibold rounded-sm hover:bg-destructive/10 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" /> Reject
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onSelectRecord({ type: person.type, data: person.data })}
+                    className="text-sm font-medium text-primary whitespace-nowrap"
+                  >
+                    View details <ArrowRight className="inline w-4 h-4 ml-1" />
+                  </button>
                 </div>
-                <span className="text-sm font-medium text-primary">View details <ArrowRight className="inline w-4 h-4 ml-1" /></span>
               </div>
-            </button>
+            </div>
           </Reveal>
         );
       })}
@@ -2634,7 +2679,7 @@ function AdminMatching({
   createMatch: (e: React.FormEvent) => void;
   removeMatch: (id: string) => void;
 }) {
-  const unmatched = enrollments.filter((e) => !matchedEnrollmentIds.includes(e.id));
+  const unmatched = enrollments.filter((e) => !matchedEnrollmentIds.includes(e.id) && e.status !== 'Rejected');
 
   return (
     <div className="space-y-8">
@@ -2999,17 +3044,17 @@ function StatusBadge({ status }: { status: string }) {
       </span>
     );
   }
-  if (status === 'Approved' || status === 'Matched' || status === 'Active') {
+  if (status === 'Approved' || status === 'Accepted' || status === 'Matched' || status === 'Active') {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-accent/20 text-accent-foreground rounded-sm">
         <CheckCircle2 className="w-3 h-3" /> {status}
       </span>
     );
   }
-  if (status === 'Denied') {
+  if (status === 'Denied' || status === 'Rejected') {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 bg-destructive/10 text-destructive rounded-sm">
-        <XCircle className="w-3 h-3" /> Denied
+        <XCircle className="w-3 h-3" /> {status}
       </span>
     );
   }
