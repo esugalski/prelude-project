@@ -2234,6 +2234,7 @@ function AdminPortal() {
   const [loading, setLoading] = useState(true);
   const [matchVolunteer, setMatchVolunteer] = useState<string>('');
   const [matchEnrollment, setMatchEnrollment] = useState<string>('');
+  const [matchError, setMatchError] = useState('');
 
   const loadData = () => {
     Promise.all([
@@ -2273,16 +2274,23 @@ function AdminPortal() {
   const createMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!matchVolunteer || !matchEnrollment) return;
-    const { data: matchData } = await supabase.from('matches').insert({
+    setMatchError('');
+    const { data: matchData, error: matchInsertError } = await supabase.from('matches').insert({
       volunteer_id: matchVolunteer,
       enrollment_id: matchEnrollment,
       status: 'Matched',
     }).select('id').single();
+
+    if (matchInsertError || !matchData) {
+      setMatchError('This match could not be created. Please try again.');
+      return;
+    }
+
     await supabase.from('lesson_enrollments').update({ status: 'Matched' }).eq('id', matchEnrollment);
 
     const volunteer = applications.find((a) => a.id === matchVolunteer);
     const enrollment = enrollments.find((e2) => e2.id === matchEnrollment);
-    if (matchData && volunteer && enrollment) {
+    if (volunteer && enrollment) {
       await supabase.from('volunteer_messages').insert({
         volunteer_id: matchVolunteer,
         match_id: matchData.id,
@@ -2298,7 +2306,10 @@ function AdminPortal() {
   };
 
   const removeMatch = async (id: string) => {
-    await supabase.from('matches').delete().eq('id', id);
+    const { data } = await supabase.from('matches').delete().eq('id', id).select('enrollment_id').single();
+    if (data?.enrollment_id) {
+      await supabase.from('lesson_enrollments').update({ status: 'Accepted' }).eq('id', data.enrollment_id);
+    }
     loadData();
   };
 
@@ -2419,6 +2430,7 @@ function AdminPortal() {
             setMatchEnrollment={setMatchEnrollment}
             createMatch={createMatch}
             removeMatch={removeMatch}
+            matchError={matchError}
           />
         ) : (
           <AdminDirectory
@@ -2667,6 +2679,7 @@ function AdminMatching({
   setMatchEnrollment,
   createMatch,
   removeMatch,
+  matchError,
 }: {
   approvedVolunteers: VolunteerApp[];
   enrollments: Enrollment[];
@@ -2678,6 +2691,7 @@ function AdminMatching({
   setMatchEnrollment: (v: string) => void;
   createMatch: (e: React.FormEvent) => void;
   removeMatch: (id: string) => void;
+  matchError: string;
 }) {
   const unmatched = enrollments.filter((e) => !matchedEnrollmentIds.includes(e.id) && e.status !== 'Rejected');
 
@@ -2733,6 +2747,12 @@ function AdminMatching({
                   ))}
                 </select>
               </div>
+              {matchError && (
+                <div className="sm:col-span-2 flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <p>{matchError}</p>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <button
                   type="submit"
