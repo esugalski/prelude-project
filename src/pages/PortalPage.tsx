@@ -2242,6 +2242,14 @@ function AdminPortal() {
     loadData();
   };
 
+  const updateTrainingStatus = async (id: string, trainingCompleted: boolean) => {
+    await supabase.from('volunteer_applications').update({
+      training_completed: trainingCompleted,
+      training_completed_at: trainingCompleted ? new Date().toISOString() : null,
+    }).eq('id', id);
+    loadData();
+  };
+
   const createMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!matchVolunteer || !matchEnrollment) return;
@@ -2376,7 +2384,7 @@ function AdminPortal() {
             onSelectRecord={setDetailRecord}
           />
         ) : tab === 'volunteers' ? (
-          <AdminVolunteers applications={applications} updateAppStatus={updateAppStatus} />
+          <AdminVolunteers applications={applications} updateAppStatus={updateAppStatus} updateTrainingStatus={updateTrainingStatus} />
         ) : tab === 'matching' ? (
           <AdminMatching
             approvedVolunteers={approvedVolunteers}
@@ -2472,9 +2480,11 @@ function AdminNewPeople({
 function AdminVolunteers({
   applications,
   updateAppStatus,
+  updateTrainingStatus,
 }: {
   applications: VolunteerApp[];
   updateAppStatus: (id: string, status: string) => void;
+  updateTrainingStatus: (id: string, trainingCompleted: boolean) => void;
 }) {
   if (applications.length === 0) {
     return (
@@ -2560,12 +2570,25 @@ function AdminVolunteers({
                 </div>
               )}
               {app.status === 'Approved' && (
-                <button
-                  onClick={() => updateAppStatus(app.id, 'Pending')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 border border-border text-sm font-medium rounded-sm hover:bg-muted transition-colors shrink-0"
-                >
-                  Move to pending
-                </button>
+                <div className="flex flex-col items-stretch gap-2 shrink-0">
+                  <button
+                    onClick={() => updateTrainingStatus(app.id, !app.training_completed)}
+                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-sm transition-colors ${
+                      app.training_completed
+                        ? 'border border-border hover:bg-muted'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/90'
+                    }`}
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    {app.training_completed ? 'Mark training incomplete' : 'Mark training complete'}
+                  </button>
+                  <button
+                    onClick={() => updateAppStatus(app.id, 'Pending')}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-border text-sm font-medium rounded-sm hover:bg-muted transition-colors"
+                  >
+                    Move to pending
+                  </button>
+                </div>
               )}
               {app.status === 'Denied' && (
                 <button
