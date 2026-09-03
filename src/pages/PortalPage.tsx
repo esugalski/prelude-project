@@ -815,6 +815,16 @@ interface AvailabilitySlot {
   status: string;
 }
 
+interface SlotRequest {
+  id: string;
+  slot_id: string;
+  student_name: string;
+  student_email: string;
+  notes: string;
+  status: string;
+  created_at: string;
+}
+
 type VolunteerTab = 'overview' | 'upcoming' | 'hours' | 'calendar' | 'courses' | 'resources';
 
 function VolunteerPortal({ userEmail }: { userEmail: string }) {
@@ -823,6 +833,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
   const [messages, setMessages] = useState<VolunteerMessage[]>([]);
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [slotRequests, setSlotRequests] = useState<SlotRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
   const [tab, setTab] = useState<VolunteerTab>('overview');
@@ -865,6 +876,19 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
     ]);
     setMessages(msgRes.data || []);
     setAvailabilitySlots(slotsRes.data || []);
+
+    const slotIds = (slotsRes.data || []).map((s) => s.id);
+    if (slotIds.length > 0) {
+      const { data: requestsData } = await supabase
+        .from('slot_requests')
+        .select('id, slot_id, student_name, student_email, notes, status, created_at')
+        .in('slot_id', slotIds)
+        .eq('status', 'Pending')
+        .order('created_at', { ascending: false });
+      setSlotRequests(requestsData || []);
+    } else {
+      setSlotRequests([]);
+    }
 
     const enrollmentIds = (matchRes.data || []).map((m) => m.enrollment_id);
     if (enrollmentIds.length === 0) {
@@ -1312,7 +1336,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
           {/* MY CALENDAR TAB */}
           {tab === 'calendar' && (
             <Reveal>
-              <VolunteerCalendarTab userEmail={userEmail} application={application} slots={availabilitySlots} onReload={loadData} />
+              <VolunteerCalendarTab userEmail={userEmail} application={application} slots={availabilitySlots} requests={slotRequests} onReload={loadData} />
             </Reveal>
           )}
 
@@ -1580,10 +1604,11 @@ function SessionLogForm({ students, volunteerId, onLogged }: {
   );
 }
 
-function VolunteerCalendarTab({ userEmail, application, slots, onReload }: {
+function VolunteerCalendarTab({ userEmail, application, slots, requests, onReload }: {
   userEmail: string;
   application: VolunteerApp | null;
   slots: AvailabilitySlot[];
+  requests: SlotRequest[];
   onReload: () => void;
 }) {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -1594,6 +1619,20 @@ function VolunteerCalendarTab({ userEmail, application, slots, onReload }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState('');
+
+  const respondToRequest = async (id: string, status: 'Accepted' | 'Declined') => {
+    setRespondingId(id);
+    setRequestError('');
+    const { error: updateError } = await supabase.from('slot_requests').update({ status }).eq('id', id);
+    setRespondingId(null);
+    if (updateError) {
+      setRequestError('This request could not be updated. Please try again.');
+    } else {
+      onReload();
+    }
+  };
 
   const slotsByDay = days.reduce<Record<string, AvailabilitySlot[]>>((grouped, day) => {
     grouped[day] = slots.filter((s) => s.day_of_week === day);
@@ -1649,6 +1688,53 @@ function VolunteerCalendarTab({ userEmail, application, slots, onReload }: {
       <p className="text-sm text-foreground/60 mb-5">
         Add the recurring times you are available to teach. Families will see these open windows when they request a lesson.
       </p>
+
+      {requests.length > 0 && (
+        <div className="mb-8 border border-border rounded-sm bg-card/40 overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+            <ClipboardList className="w-5 h-5 text-secondary" strokeWidth={1.5} />
+            <div>
+              <h4 className="font-display text-xl tracking-tight">Pending lesson requests</h4>
+              <p className="text-sm text-foreground/60">Accept or decline requests for your open times.</p>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {requests.map((req) => {
+              const slot = slots.find((s) => s.id === req.slot_id);
+              return (
+                <div key={req.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                  <div>
+                    <p className="text-sm font-semibold">{req.student_name}</p>
+                    <p className="mt-0.5 text-sm text-foreground/60">
+                      {slot ? `${slot.day_of_week} · ${slot.start_time}–${slot.end_time}` : 'Requested time'}
+                      {req.notes ? ` · ${req.notes}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => respondToRequest(req.id, 'Accepted')}
+                      disabled={respondingId === req.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-secondary text-secondary-foreground rounded-sm hover:bg-secondary/90 transition-colors disabled:opacity-40"
+                    >
+                      <CheckCircle2 className="w-4 h-4" /> Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => respondToRequest(req.id, 'Declined')}
+                      disabled={respondingId === req.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-input rounded-sm hover:bg-muted transition-colors disabled:opacity-40"
+                    >
+                      <XCircle className="w-4 h-4" /> Decline
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {requestError && <p className="px-5 pb-4 text-sm text-destructive">{requestError}</p>}
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="border border-border rounded-sm bg-background overflow-hidden">
