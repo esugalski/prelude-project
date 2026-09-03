@@ -59,6 +59,7 @@ const childInstrumentOptions = [
 interface Slot {
   id: string;
   volunteer_name: string;
+  volunteer_email: string;
   instrument_specialty: string;
   slot_type: string;
   day_of_week: string;
@@ -204,6 +205,9 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const selectedEnrollment = enrollments.find((e) => e.id === selectedEnrollmentId) ?? null;
   const matchedVolunteer = selectedEnrollmentId ? matchByEnrollment[selectedEnrollmentId] ?? null : null;
   const volunteerMeetLink = selectedEnrollmentId ? meetLinkByEnrollment[selectedEnrollmentId] ?? '' : '';
+  const visibleSlots = matchedVolunteer
+    ? slots.filter((s) => s.volunteer_email === matchedVolunteer.email)
+    : [];
 
   const refetchEnrollments = async () => {
     const { data } = await supabase
@@ -450,9 +454,9 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
             <div key={i} className="h-40 bg-muted animate-pulse rounded-sm" />
           ))}
         </div>
-      ) : slots.length > 0 ? (
+      ) : visibleSlots.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {slots.map((slot, i) => (
+          {visibleSlots.map((slot, i) => (
             <Reveal key={slot.id} delay={i * 0.05}>
               <div className="border border-border rounded-sm p-5 bg-background hover:border-primary/40 transition-colors">
                 <div className="flex items-start justify-between">
@@ -484,8 +488,9 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
           <div className="border border-dashed border-border rounded-sm p-12 text-center">
             <Calendar className="w-10 h-10 text-foreground/30 mx-auto" strokeWidth={1} />
             <p className="mt-4 text-foreground/60 max-w-md mx-auto">
-              No lesson slots are open right now. New volunteer teachers are joining every week —
-              check back soon, or we'll match your child directly.
+              {matchedVolunteer
+                ? "Your matched teacher hasn't posted open lesson times yet. Check back soon."
+                : "You'll see available lesson times here once we've matched your child with a teacher."}
             </p>
           </div>
         </Reveal>
