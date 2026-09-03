@@ -12,8 +12,7 @@
 //   - INSERT on public.slot_requests              -> teacher notified of a new lesson-time request
 //   - UPDATE on public.slot_requests              -> student/parent notified on Pending->Accepted
 //
-// Sends via Resend. FROM_ADDRESS is on Resend's sandbox domain until a custom
-// domain is verified — sandbox mail only reaches the Resend account owner's inbox.
+// Sends via Resend from the verified melodymission.com domain.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -21,8 +20,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
 
-// TODO once you verify your own domain in Resend: change this line only.
-const FROM_ADDRESS = 'Melody Mission <onboarding@resend.dev>';
+const FROM_ADDRESS = 'Melody Mission <hello@melodymission.com>';
 
 type WebhookPayload = {
   type: 'INSERT' | 'UPDATE' | 'DELETE';
