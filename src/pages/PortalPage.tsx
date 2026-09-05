@@ -2535,6 +2535,7 @@ function AdminPortal() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<Slot[]>([]);
   const [scheduledSessions, setScheduledSessions] = useState<SlotRequest[]>([]);
+  const [pendingSessions, setPendingSessions] = useState<SlotRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchVolunteer, setMatchVolunteer] = useState<string>('');
   const [matchEnrollment, setMatchEnrollment] = useState<string>('');
@@ -2546,13 +2547,14 @@ function AdminPortal() {
       supabase.from('lesson_enrollments').select('*').order('created_at', { ascending: false }),
       supabase.from('matches').select('*').order('created_at', { ascending: false }),
       supabase.from('volunteer_availability').select('*').order('volunteer_name').order('day_of_week').order('start_time'),
-      supabase.from('slot_requests').select('*').eq('status', 'Accepted').order('created_at', { ascending: false }),
+      supabase.from('slot_requests').select('*').in('status', ['Accepted', 'Pending']).order('created_at', { ascending: false }),
     ]).then(([appRes, enrollRes, matchRes, slotsRes, sessionsRes]) => {
       setApplications(appRes.data || []);
       setEnrollments(enrollRes.data || []);
       setMatches(matchRes.data || []);
       setAvailabilitySlots(slotsRes.data || []);
-      setScheduledSessions(sessionsRes.data || []);
+      setScheduledSessions((sessionsRes.data || []).filter((s) => s.status === 'Accepted'));
+      setPendingSessions((sessionsRes.data || []).filter((s) => s.status === 'Pending'));
       setLoading(false);
     });
   };
@@ -2768,7 +2770,7 @@ function AdminPortal() {
             matchError={matchError}
           />
         ) : tab === 'schedule' ? (
-          <AdminSchedule slots={availabilitySlots} sessions={scheduledSessions} />
+          <AdminSchedule slots={availabilitySlots} sessions={scheduledSessions} pendingSessions={pendingSessions} />
         ) : (
           <AdminDirectory
             enrollments={enrollments}
@@ -3223,9 +3225,10 @@ function StudentDetailDrawer({ student, meetLink, onClose }: { student: StudentP
   );
 }
 
-function AdminSchedule({ slots, sessions }: {
+function AdminSchedule({ slots, sessions, pendingSessions }: {
   slots: Slot[];
   sessions: SlotRequest[];
+  pendingSessions: SlotRequest[];
 }) {
   const slotById: Record<string, Slot> = {};
   slots.forEach((s) => {
@@ -3276,6 +3279,45 @@ function AdminSchedule({ slots, sessions }: {
                     </p>
                     {session.notes && <p className="text-xs text-foreground/50 mt-1">{session.notes}</p>}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="font-display text-xl tracking-tight mb-4 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-secondary" strokeWidth={1.5} /> Requested, not yet accepted
+          {pendingSessions.length > 0 && (
+            <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">{pendingSessions.length}</span>
+          )}
+        </h3>
+        {pendingSessions.length === 0 ? (
+          <div className="border border-dashed border-border rounded-sm p-8 text-center">
+            <p className="text-foreground/60">No lesson time requests are waiting on a teacher's response.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pendingSessions.map((session) => {
+              const slot = slotById[session.slot_id];
+              return (
+                <div key={session.id} className="border border-border rounded-sm p-5 bg-background flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-display text-base tracking-tight">
+                      {session.student_name}{' '}
+                      <span className="text-foreground/40">&harr;</span>{' '}
+                      {slot?.volunteer_name || 'Unknown volunteer'}
+                    </p>
+                    <p className="text-sm text-foreground/60 mt-0.5">
+                      {formatSlotTime(slot)}
+                      {slot?.instrument_specialty ? ` · ${slot.instrument_specialty}` : ''}
+                    </p>
+                    {session.notes && <p className="text-xs text-foreground/50 mt-1">{session.notes}</p>}
+                  </div>
+                  <span className="shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-sm">
+                    <Clock className="w-3.5 h-3.5" /> Awaiting response
+                  </span>
                 </div>
               );
             })}
