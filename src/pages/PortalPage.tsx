@@ -189,8 +189,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
-  const [matchByEnrollment, setMatchByEnrollment] = useState<Record<string, VolunteerProfileView>>({});
-  const [meetLinkByEnrollment, setMeetLinkByEnrollment] = useState<Record<string, string>>({});
+  const [matchByEnrollment, setMatchByEnrollment] = useState<Record<string, VolunteerProfileView[]>>({});
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
@@ -200,13 +199,12 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-  const [showVolunteerProfile, setShowVolunteerProfile] = useState(false);
+  const [viewingVolunteer, setViewingVolunteer] = useState<VolunteerProfileView | null>(null);
 
   const selectedEnrollment = enrollments.find((e) => e.id === selectedEnrollmentId) ?? null;
-  const matchedVolunteer = selectedEnrollmentId ? matchByEnrollment[selectedEnrollmentId] ?? null : null;
-  const volunteerMeetLink = selectedEnrollmentId ? meetLinkByEnrollment[selectedEnrollmentId] ?? '' : '';
-  const visibleSlots = matchedVolunteer
-    ? slots.filter((s) => s.volunteer_email === matchedVolunteer.email)
+  const matchedVolunteers = selectedEnrollmentId ? matchByEnrollment[selectedEnrollmentId] ?? [] : [];
+  const visibleSlots = matchedVolunteers.length > 0
+    ? slots.filter((s) => matchedVolunteers.some((v) => v.email === s.volunteer_email))
     : [];
 
   const refetchEnrollments = async () => {
@@ -261,17 +259,15 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
             volById[v.id] = v;
           });
 
-          const matchMap: Record<string, VolunteerProfileView> = {};
-          const meetMap: Record<string, string> = {};
+          const matchMap: Record<string, VolunteerProfileView[]> = {};
           (matchData || []).forEach((m) => {
             const v = volById[m.volunteer_id];
             if (v) {
-              matchMap[m.enrollment_id] = { kind: 'volunteer', ...v } as VolunteerProfileView;
-              meetMap[m.enrollment_id] = v.meet_link || '';
+              if (!matchMap[m.enrollment_id]) matchMap[m.enrollment_id] = [];
+              matchMap[m.enrollment_id].push({ kind: 'volunteer', ...v } as VolunteerProfileView);
             }
           });
           setMatchByEnrollment(matchMap);
-          setMeetLinkByEnrollment(meetMap);
         }
       }
 
@@ -402,26 +398,39 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 </p>
               </div>
             </div>
-            {matchedVolunteer && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {volunteerMeetLink && (
-                  <a
-                    href={volunteerMeetLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
+            {matchedVolunteers.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {matchedVolunteers.map((teacher) => (
+                  <div
+                    key={teacher.email}
+                    className="flex flex-wrap items-center gap-3 border border-border rounded-sm p-3"
                   >
-                    <Video className="w-4 h-4" />
-                    Join session
-                  </a>
-                )}
-                <button
-                  onClick={() => setShowVolunteerProfile(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground text-sm font-semibold rounded-sm hover:bg-secondary/90 transition-colors"
-                >
-                  <UserCircle className="w-4 h-4" />
-                  View your teacher's profile
-                </button>
+                    <div className="flex-1 min-w-[140px]">
+                      <p className="text-xs uppercase tracking-[0.1em] text-secondary">
+                        {teacher.instrument_specialty || 'Teacher'}
+                      </p>
+                      <p className="text-sm font-medium">{teacher.full_name}</p>
+                    </div>
+                    {teacher.meet_link && (
+                      <a
+                        href={teacher.meet_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors"
+                      >
+                        <Video className="w-4 h-4" />
+                        Join session
+                      </a>
+                    )}
+                    <button
+                      onClick={() => setViewingVolunteer(teacher)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground text-sm font-semibold rounded-sm hover:bg-secondary/90 transition-colors"
+                    >
+                      <UserCircle className="w-4 h-4" />
+                      View profile
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -498,7 +507,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
           <div className="border border-dashed border-border rounded-sm p-12 text-center">
             <Calendar className="w-10 h-10 text-foreground/30 mx-auto" strokeWidth={1} />
             <p className="mt-4 text-foreground/60 max-w-md mx-auto">
-              {matchedVolunteer
+              {matchedVolunteers.length > 0
                 ? "Your matched teacher hasn't posted open lesson times yet. Check back soon."
                 : "You'll see available lesson times here once we've matched your child with a teacher."}
             </p>
@@ -590,18 +599,18 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         />
       )}
 
-      {showVolunteerProfile && matchedVolunteer && (
+      {viewingVolunteer && (
         <>
-          <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm" onClick={() => setShowVolunteerProfile(false)} />
+          <div className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm" onClick={() => setViewingVolunteer(null)} />
           <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-background border-b border-border px-6 py-4 flex items-center justify-between">
-              <h3 className="font-display text-lg tracking-tight">Your teacher's profile</h3>
-              <button onClick={() => setShowVolunteerProfile(false)} className="p-1.5 hover:bg-muted rounded-sm transition-colors">
+              <h3 className="font-display text-lg tracking-tight">{viewingVolunteer.full_name}'s profile</h3>
+              <button onClick={() => setViewingVolunteer(null)} className="p-1.5 hover:bg-muted rounded-sm transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="px-6 py-5">
-              <ProfileCard profile={matchedVolunteer} />
+              <ProfileCard profile={viewingVolunteer} />
             </div>
           </div>
         </>
@@ -2361,6 +2370,15 @@ function AdminPortal() {
     e.preventDefault();
     if (!matchVolunteer || !matchEnrollment) return;
     setMatchError('');
+
+    const alreadyMatched = matches.some(
+      (m) => m.volunteer_id === matchVolunteer && m.enrollment_id === matchEnrollment
+    );
+    if (alreadyMatched) {
+      setMatchError('This volunteer is already matched with this student.');
+      return;
+    }
+
     const { data: matchData, error: matchInsertError } = await supabase.from('matches').insert({
       volunteer_id: matchVolunteer,
       enrollment_id: matchEnrollment,
@@ -2394,7 +2412,15 @@ function AdminPortal() {
   const removeMatch = async (id: string) => {
     const { data } = await supabase.from('matches').delete().eq('id', id).select('enrollment_id').single();
     if (data?.enrollment_id) {
-      await supabase.from('lesson_enrollments').update({ status: 'Accepted' }).eq('id', data.enrollment_id);
+      const { count } = await supabase
+        .from('matches')
+        .select('id', { count: 'exact', head: true })
+        .eq('enrollment_id', data.enrollment_id);
+      // Only revert the student to "Accepted" once their last remaining match is removed —
+      // a student with 2 teachers (e.g. piano + violin) should stay "Matched" after losing one.
+      if (!count) {
+        await supabase.from('lesson_enrollments').update({ status: 'Accepted' }).eq('id', data.enrollment_id);
+      }
     }
     loadData();
   };
@@ -2779,7 +2805,13 @@ function AdminMatching({
   removeMatch: (id: string) => void;
   matchError: string;
 }) {
-  const unmatched = enrollments.filter((e) => !matchedEnrollmentIds.includes(e.id) && e.status !== 'Rejected');
+  // Non-rejected students stay selectable even after a match, so a student
+  // can be matched with more than one teacher (e.g. one for piano, one for violin).
+  const matchCountByEnrollment = matchedEnrollmentIds.reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] || 0) + 1;
+    return acc;
+  }, {});
+  const matchable = enrollments.filter((e) => e.status !== 'Rejected');
 
   return (
     <div className="space-y-8">
@@ -2790,13 +2822,13 @@ function AdminMatching({
             <Handshake className="w-5 h-5 text-secondary" strokeWidth={1.5} />
             <h3 className="font-display text-lg tracking-tight">Create a new match</h3>
           </div>
-          {approvedVolunteers.length === 0 || unmatched.length === 0 ? (
+          {approvedVolunteers.length === 0 || matchable.length === 0 ? (
             <div className="flex items-start gap-2 text-sm text-foreground/60">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
               <p>
                 {approvedVolunteers.length === 0
                   ? 'No approved volunteers are ready yet. Volunteers must complete training and create a profile before matching.'
-                  : 'All enrolled students have been matched. New enrollments will appear here.'}
+                  : 'No enrolled students yet. New enrollments will appear here.'}
               </p>
             </div>
           ) : (
@@ -2826,11 +2858,15 @@ function AdminMatching({
                   className="mt-1.5 w-full px-4 py-2.5 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Select a student...</option>
-                  {unmatched.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.child_name} (age {e.child_age}) — {e.instrument_interest || 'Any'} — {e.parent_name}
-                    </option>
-                  ))}
+                  {matchable.map((e) => {
+                    const count = matchCountByEnrollment[e.id] || 0;
+                    return (
+                      <option key={e.id} value={e.id}>
+                        {e.child_name} (age {e.child_age}) — {e.instrument_interest || 'Any'} — {e.parent_name}
+                        {count > 0 ? ` — already matched with ${count} teacher${count > 1 ? 's' : ''}` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               {matchError && (

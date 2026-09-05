@@ -12,6 +12,7 @@ export interface VolunteerProfileView {
   profile_image_url?: string;
   profile_hobbies?: string;
   profile_teaching_methods?: string;
+  meet_link?: string;
 }
 
 export interface StudentProfileView {
