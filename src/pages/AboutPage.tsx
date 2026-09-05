@@ -122,7 +122,7 @@ export function AboutPage() {
 
       <CTASection
         title="Ready to write the next movement?"
-        subtitle="Whether you're a musician who can teach, a family with a child who wants to learn, or someone who can put an instrument in waiting hands — there's a part for you."
+        subtitle="Whether you're a musician who can teach or a family with a child who wants to learn, there's a part for you."
       />
     </>
   );
