@@ -13,6 +13,7 @@ export interface VolunteerProfileView {
   profile_hobbies?: string;
   profile_teaching_methods?: string;
   meet_link?: string;
+  match_id?: string;
 }
 
 export interface StudentProfileView {

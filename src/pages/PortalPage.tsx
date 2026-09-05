@@ -36,10 +36,12 @@ import {
   Pencil,
   Video,
   KeyRound,
+  MessageCircle,
 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { ProfileCard, type VolunteerProfileView, type StudentProfileView } from '@/components/ProfileCard';
+import { ChatBox } from '@/components/ChatBox';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { courseData, courseTitles, courseDescriptions, instrumentFamilies } from '@/data/courses';
@@ -190,6 +192,8 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
   const [matchByEnrollment, setMatchByEnrollment] = useState<Record<string, VolunteerProfileView[]>>({});
+  const [viewTab, setViewTab] = useState<'overview' | 'chat'>('overview');
+  const [activeChatMatchId, setActiveChatMatchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
@@ -203,6 +207,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
 
   const selectedEnrollment = enrollments.find((e) => e.id === selectedEnrollmentId) ?? null;
   const matchedVolunteers = selectedEnrollmentId ? matchByEnrollment[selectedEnrollmentId] ?? [] : [];
+  const activeChatTeacher = matchedVolunteers.find((v) => v.match_id === activeChatMatchId) ?? matchedVolunteers[0] ?? null;
   const visibleSlots = matchedVolunteers.length > 0
     ? slots.filter((s) => matchedVolunteers.some((v) => v.email === s.volunteer_email))
     : [];
@@ -243,7 +248,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
       if (matchable.length > 0) {
         const { data: matchData } = await supabase
           .from('matches')
-          .select('volunteer_id, enrollment_id')
+          .select('id, volunteer_id, enrollment_id')
           .in('enrollment_id', matchable);
 
         const volunteerIds = [...new Set((matchData || []).map((m) => m.volunteer_id))];
@@ -264,7 +269,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
             const v = volById[m.volunteer_id];
             if (v) {
               if (!matchMap[m.enrollment_id]) matchMap[m.enrollment_id] = [];
-              matchMap[m.enrollment_id].push({ kind: 'volunteer', ...v } as VolunteerProfileView);
+              matchMap[m.enrollment_id].push({ kind: 'volunteer', ...v, match_id: m.id } as VolunteerProfileView);
             }
           });
           setMatchByEnrollment(matchMap);
@@ -351,6 +356,37 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         </Reveal>
       )}
 
+      {enrollments.length > 0 && (
+        <Reveal>
+          <div className="flex gap-2 mb-8">
+            <button
+              type="button"
+              onClick={() => setViewTab('overview')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-sm border transition-colors ${
+                viewTab === 'overview'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background border-border hover:bg-muted'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" /> Overview
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewTab('chat')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-sm border transition-colors ${
+                viewTab === 'chat'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background border-border hover:bg-muted'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" /> Chat
+            </button>
+          </div>
+        </Reveal>
+      )}
+
+      {viewTab === 'overview' && (
+      <>
       {selectedEnrollment && (
         <Reveal>
           <div className="border border-border rounded-sm p-6 bg-card/40 mb-10">
@@ -511,6 +547,66 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 ? "Your matched teacher hasn't posted open lesson times yet. Check back soon."
                 : "You'll see available lesson times here once we've matched your child with a teacher."}
             </p>
+          </div>
+        </Reveal>
+      )}
+      </>
+      )}
+
+      {viewTab === 'chat' && (
+        <Reveal>
+          <div className="mb-10">
+            <h3 className="font-display text-2xl tracking-tight flex items-center gap-2 mb-1">
+              <MessageCircle className="w-6 h-6 text-primary" strokeWidth={1.5} />
+              {selectedEnrollment ? `Chat for ${selectedEnrollment.child_name}` : 'Chat'}
+            </h3>
+            <p className="text-sm text-foreground/60 mb-5">
+              Message your child's matched teacher{matchedVolunteers.length !== 1 ? 's' : ''} directly.
+            </p>
+            {matchedVolunteers.length === 0 ? (
+              <div className="border border-dashed border-border rounded-sm p-12 text-center">
+                <MessageCircle className="w-10 h-10 text-foreground/30 mx-auto" strokeWidth={1} />
+                <p className="mt-4 text-foreground/60 max-w-md mx-auto">
+                  You'll be able to chat here once your child is matched with a teacher.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+                {matchedVolunteers.length > 1 && (
+                  <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible">
+                    {matchedVolunteers.map((teacher) => {
+                      const active = activeChatTeacher?.match_id === teacher.match_id;
+                      return (
+                        <button
+                          key={teacher.match_id}
+                          type="button"
+                          onClick={() => setActiveChatMatchId(teacher.match_id ?? null)}
+                          className={`shrink-0 text-left px-4 py-2.5 text-sm font-medium rounded-sm border transition-colors ${
+                            active
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          <p>{teacher.full_name}</p>
+                          <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-foreground/50'}`}>
+                            {teacher.instrument_specialty}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {activeChatTeacher?.match_id && (
+                  <ChatBox
+                    matchId={activeChatTeacher.match_id}
+                    currentRole="parent"
+                    currentEmail={userEmail}
+                    counterpartName={activeChatTeacher.full_name}
+                    counterpartSubtitle={activeChatTeacher.instrument_specialty}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </Reveal>
       )}
@@ -781,6 +877,7 @@ function AddChildModal({ parentName, parentEmail, userId, onClose, onAdded }: {
 
 interface StudentProgress {
   enrollment_id: string;
+  matchId: string;
   student_name: string;
   parent_email: string;
   instrument: string;
@@ -834,7 +931,7 @@ interface SlotRequest {
   created_at: string;
 }
 
-type VolunteerTab = 'overview' | 'upcoming' | 'hours' | 'calendar' | 'courses' | 'resources';
+type VolunteerTab = 'overview' | 'upcoming' | 'hours' | 'calendar' | 'courses' | 'resources' | 'chat';
 
 function VolunteerPortal({ userEmail }: { userEmail: string }) {
   const [application, setApplication] = useState<VolunteerApp | null>(null);
@@ -879,7 +976,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
     }
 
     const [matchRes, msgRes, slotsRes] = await Promise.all([
-      supabase.from('matches').select('enrollment_id').eq('volunteer_id', appData.id),
+      supabase.from('matches').select('id, enrollment_id').eq('volunteer_id', appData.id),
       supabase.from('volunteer_messages').select('id, title, body, read, created_at').eq('volunteer_id', appData.id).order('created_at', { ascending: false }),
       supabase.from('volunteer_availability').select('*').eq('volunteer_email', userEmail).order('day_of_week').order('start_time'),
     ]);
@@ -900,6 +997,10 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
     }
 
     const enrollmentIds = (matchRes.data || []).map((m) => m.enrollment_id);
+    const matchIdByEnrollment: Record<string, string> = {};
+    (matchRes.data || []).forEach((m) => {
+      matchIdByEnrollment[m.enrollment_id] = m.id;
+    });
     if (enrollmentIds.length === 0) {
       setStudents([]);
       setSessionLogs([]);
@@ -921,6 +1022,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
 
     const studentList: StudentProgress[] = (enrollRes.data || []).map((e) => ({
       enrollment_id: e.id,
+      matchId: matchIdByEnrollment[e.id],
       student_name: e.child_name,
       parent_email: e.parent_email,
       instrument: e.instrument_interest || 'Not specified',
@@ -966,6 +1068,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
     { id: 'calendar', label: 'My Calendar', icon: CalendarDays },
     { id: 'courses', label: 'Courses', icon: BookOpenCheck },
     { id: 'resources', label: 'Resources', icon: FolderOpen },
+    { id: 'chat', label: 'Chat', icon: MessageCircle },
   ];
 
   return (
@@ -1356,6 +1459,13 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
             </Reveal>
           )}
 
+          {/* CHAT TAB */}
+          {tab === 'chat' && (
+            <Reveal>
+              <VolunteerChatTab students={students} userEmail={userEmail} />
+            </Reveal>
+          )}
+
           {/* COURSES TAB */}
           {tab === 'courses' && (
             <Reveal>
@@ -1610,6 +1720,69 @@ function SessionLogForm({ students, volunteerId, onLogged }: {
         {saving ? 'Logging...' : 'Log session'}
       </button>
     </form>
+  );
+}
+
+function VolunteerChatTab({ students, userEmail }: {
+  students: StudentProgress[];
+  userEmail: string;
+}) {
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const activeStudent = students.find((s) => s.matchId === activeMatchId) ?? students[0] ?? null;
+
+  return (
+    <div className="mb-8">
+      <h3 className="font-display text-2xl tracking-tight flex items-center gap-2 mb-1">
+        <MessageCircle className="w-6 h-6 text-primary" strokeWidth={1.5} />
+        Chat
+      </h3>
+      <p className="text-sm text-foreground/60 mb-5">Message your matched students directly.</p>
+
+      {students.length === 0 ? (
+        <div className="border border-dashed border-border rounded-sm p-12 text-center">
+          <MessageCircle className="w-10 h-10 text-foreground/30 mx-auto" strokeWidth={1} />
+          <p className="mt-4 text-foreground/60 max-w-md mx-auto">
+            You'll be able to chat here once you're matched with a student.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+          {students.length > 1 && (
+            <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible">
+              {students.map((student) => {
+                const active = activeStudent?.matchId === student.matchId;
+                return (
+                  <button
+                    key={student.matchId}
+                    type="button"
+                    onClick={() => setActiveMatchId(student.matchId)}
+                    className={`shrink-0 text-left px-4 py-2.5 text-sm font-medium rounded-sm border transition-colors ${
+                      active
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
+                  >
+                    <p>{student.student_name}</p>
+                    <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-foreground/50'}`}>
+                      {student.instrument}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {activeStudent && (
+            <ChatBox
+              matchId={activeStudent.matchId}
+              currentRole="volunteer"
+              currentEmail={userEmail}
+              counterpartName={activeStudent.student_name}
+              counterpartSubtitle={activeStudent.instrument}
+            />
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
