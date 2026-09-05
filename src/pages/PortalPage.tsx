@@ -41,7 +41,7 @@ import {
 import { Reveal } from '@/components/Reveal';
 import { ProfileEditor } from '@/components/ProfileEditor';
 import { ProfileCard, type VolunteerProfileView, type StudentProfileView } from '@/components/ProfileCard';
-import { ChatBox } from '@/components/ChatBox';
+import { ChatBox, UnreadDot, useUnreadMatches } from '@/components/ChatBox';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { courseData, courseTitles, courseDescriptions, instrumentFamilies } from '@/data/courses';
@@ -212,6 +212,14 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
     ? slots.filter((s) => matchedVolunteers.some((v) => v.email === s.volunteer_email))
     : [];
 
+  // Unread status across every one of this parent's children's teachers, not just the
+  // currently selected child - the Chat tab dot should reflect the whole family.
+  const allMatchIds = Object.values(matchByEnrollment)
+    .flat()
+    .map((v) => v.match_id)
+    .filter((id): id is string => Boolean(id));
+  const { unread: unreadMatches, markRead: markMatchRead } = useUnreadMatches(allMatchIds, 'volunteer');
+
   const refetchEnrollments = async () => {
     const { data } = await supabase
       .from('lesson_enrollments')
@@ -380,6 +388,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
               }`}
             >
               <MessageCircle className="w-4 h-4" /> Chat
+              {unreadMatches.size > 0 && <UnreadDot className={viewTab === 'chat' ? 'bg-primary-foreground' : ''} />}
             </button>
           </div>
         </Reveal>
@@ -587,7 +596,12 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                               : 'bg-background border-border hover:bg-muted'
                           }`}
                         >
-                          <p>{teacher.full_name}</p>
+                          <p className="flex items-center gap-1.5">
+                            {teacher.full_name}
+                            {teacher.match_id && unreadMatches.has(teacher.match_id) && (
+                              <UnreadDot className={active ? 'bg-primary-foreground' : ''} />
+                            )}
+                          </p>
                           <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-foreground/50'}`}>
                             {teacher.instrument_specialty}
                           </p>
@@ -603,6 +617,8 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                     currentEmail={userEmail}
                     counterpartName={activeChatTeacher.full_name}
                     counterpartSubtitle={activeChatTeacher.instrument_specialty}
+                    unread={unreadMatches.has(activeChatTeacher.match_id)}
+                    onRead={() => markMatchRead(activeChatTeacher.match_id!)}
                   />
                 )}
               </div>
@@ -1051,6 +1067,9 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
   const studentNameById = (enrollmentId: string) =>
     students.find((s) => s.enrollment_id === enrollmentId)?.student_name || 'Student';
 
+  const chatMatchIds = students.map((s) => s.matchId).filter(Boolean);
+  const { unread: unreadMatches, markRead: markMatchRead } = useUnreadMatches(chatMatchIds, 'parent');
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -1150,6 +1169,7 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
                 {t.id === 'hours' && unconfirmedSessions.length > 0 && (
                   <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">{unconfirmedSessions.length}</span>
                 )}
+                {t.id === 'chat' && unreadMatches.size > 0 && <UnreadDot />}
                 {tab === t.id && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
               </button>
             ))}
@@ -1462,7 +1482,12 @@ function VolunteerPortal({ userEmail }: { userEmail: string }) {
           {/* CHAT TAB */}
           {tab === 'chat' && (
             <Reveal>
-              <VolunteerChatTab students={students} userEmail={userEmail} />
+              <VolunteerChatTab
+                students={students}
+                userEmail={userEmail}
+                unreadMatches={unreadMatches}
+                onRead={markMatchRead}
+              />
             </Reveal>
           )}
 
@@ -1723,9 +1748,11 @@ function SessionLogForm({ students, volunteerId, onLogged }: {
   );
 }
 
-function VolunteerChatTab({ students, userEmail }: {
+function VolunteerChatTab({ students, userEmail, unreadMatches, onRead }: {
   students: StudentProgress[];
   userEmail: string;
+  unreadMatches: Set<string>;
+  onRead: (matchId: string) => void;
 }) {
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
   const activeStudent = students.find((s) => s.matchId === activeMatchId) ?? students[0] ?? null;
@@ -1762,7 +1789,12 @@ function VolunteerChatTab({ students, userEmail }: {
                         : 'bg-background border-border hover:bg-muted'
                     }`}
                   >
-                    <p>{student.student_name}</p>
+                    <p className="flex items-center gap-1.5">
+                      {student.student_name}
+                      {unreadMatches.has(student.matchId) && (
+                        <UnreadDot className={active ? 'bg-primary-foreground' : ''} />
+                      )}
+                    </p>
                     <p className={`text-xs ${active ? 'text-primary-foreground/70' : 'text-foreground/50'}`}>
                       {student.instrument}
                     </p>
@@ -1778,6 +1810,8 @@ function VolunteerChatTab({ students, userEmail }: {
               currentEmail={userEmail}
               counterpartName={activeStudent.student_name}
               counterpartSubtitle={activeStudent.instrument}
+              unread={unreadMatches.has(activeStudent.matchId)}
+              onRead={() => onRead(activeStudent.matchId)}
             />
           )}
         </div>

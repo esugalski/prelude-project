@@ -9,9 +9,11 @@ export interface MatchMessage {
   sender_email: string;
   body: string;
   created_at: string;
+  read: boolean;
 }
 
 const POLL_INTERVAL_MS = 6000;
+const UNREAD_POLL_INTERVAL_MS = 8000;
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -22,18 +24,68 @@ function formatTime(iso: string): string {
   });
 }
 
+// A small blue dot for "this conversation/tab has an unread message."
+export function UnreadDot({ className = '' }: { className?: string }) {
+  return <span className={`inline-block w-2 h-2 rounded-full bg-secondary ${className}`} aria-label="Unread" />;
+}
+
+// Tracks, for a set of matches, which ones have an unread message from the
+// counterpart role - drives the dot on the Chat tab and on each conversation
+// in the list. Polls rather than subscribing per-match, since this needs to
+// stay accurate even for conversations that aren't currently open.
+export function useUnreadMatches(matchIds: string[], counterpartRole: 'volunteer' | 'parent') {
+  const [unread, setUnread] = useState<Set<string>>(new Set());
+  const key = matchIds.join(',');
+
+  const refresh = async () => {
+    if (matchIds.length === 0) {
+      setUnread(new Set());
+      return;
+    }
+    const { data } = await supabase
+      .from('match_messages')
+      .select('match_id')
+      .in('match_id', matchIds)
+      .eq('sender_role', counterpartRole)
+      .eq('read', false);
+    setUnread(new Set((data || []).map((m) => m.match_id)));
+  };
+
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, UNREAD_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, counterpartRole]);
+
+  const markRead = (matchId: string) => {
+    setUnread((prev) => {
+      if (!prev.has(matchId)) return prev;
+      const next = new Set(prev);
+      next.delete(matchId);
+      return next;
+    });
+  };
+
+  return { unread, markRead, refresh };
+}
+
 export function ChatBox({
   matchId,
   currentRole,
   currentEmail,
   counterpartName,
   counterpartSubtitle,
+  unread = false,
+  onRead,
 }: {
   matchId: string;
   currentRole: 'volunteer' | 'parent';
   currentEmail: string;
   counterpartName: string;
   counterpartSubtitle?: string;
+  unread?: boolean;
+  onRead?: () => void;
 }) {
   const [messages, setMessages] = useState<MatchMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,18 +93,30 @@ export function ChatBox({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const counterpartRole: 'volunteer' | 'parent' = currentRole === 'volunteer' ? 'parent' : 'volunteer';
 
   const appendMessage = (msg: MatchMessage) => {
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   };
 
+  const markAsRead = async () => {
+    const { error: updateError } = await supabase
+      .from('match_messages')
+      .update({ read: true })
+      .eq('match_id', matchId)
+      .eq('sender_role', counterpartRole)
+      .eq('read', false);
+    if (!updateError) onRead?.();
+  };
+
   const loadMessages = async () => {
     const { data } = await supabase
       .from('match_messages')
-      .select('id, match_id, sender_role, sender_email, body, created_at')
+      .select('id, match_id, sender_role, sender_email, body, created_at, read')
       .eq('match_id', matchId)
       .order('created_at', { ascending: true });
     if (data) setMessages(data);
+    markAsRead();
   };
 
   useEffect(() => {
@@ -65,7 +129,10 @@ export function ChatBox({
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'match_messages', filter: `match_id=eq.${matchId}` },
-        (payload) => appendMessage(payload.new as MatchMessage)
+        (payload) => {
+          appendMessage(payload.new as MatchMessage);
+          markAsRead();
+        }
       )
       .subscribe();
 
@@ -95,7 +162,7 @@ export function ChatBox({
     const { data, error: insertError } = await supabase
       .from('match_messages')
       .insert({ match_id: matchId, sender_role: currentRole, sender_email: currentEmail, body })
-      .select('id, match_id, sender_role, sender_email, body, created_at')
+      .select('id, match_id, sender_role, sender_email, body, created_at, read')
       .single();
     setSending(false);
     if (insertError || !data) {
@@ -111,7 +178,10 @@ export function ChatBox({
       <div className="flex items-center gap-2 border-b border-border px-5 py-4 shrink-0">
         <MessageCircle className="w-5 h-5 text-secondary" strokeWidth={1.5} />
         <div>
-          <p className="font-display text-base tracking-tight">{counterpartName}</p>
+          <p className="font-display text-base tracking-tight flex items-center gap-1.5">
+            {counterpartName}
+            {unread && <UnreadDot />}
+          </p>
           {counterpartSubtitle && <p className="text-xs text-foreground/50">{counterpartSubtitle}</p>}
         </div>
       </div>
