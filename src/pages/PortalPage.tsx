@@ -2528,11 +2528,13 @@ function isVolunteerReady(app: VolunteerApp): boolean {
 }
 
 function AdminPortal() {
-  const [tab, setTab] = useState<'new' | 'volunteers' | 'matching' | 'directory'>('new');
+  const [tab, setTab] = useState<'new' | 'volunteers' | 'matching' | 'schedule' | 'directory'>('new');
   const [detailRecord, setDetailRecord] = useState<{ type: 'child' | 'volunteer'; data: Enrollment | VolunteerApp } | null>(null);
   const [applications, setApplications] = useState<VolunteerApp[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<Slot[]>([]);
+  const [scheduledSessions, setScheduledSessions] = useState<SlotRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchVolunteer, setMatchVolunteer] = useState<string>('');
   const [matchEnrollment, setMatchEnrollment] = useState<string>('');
@@ -2543,10 +2545,14 @@ function AdminPortal() {
       supabase.from('volunteer_applications').select('*').order('created_at', { ascending: false }),
       supabase.from('lesson_enrollments').select('*').order('created_at', { ascending: false }),
       supabase.from('matches').select('*').order('created_at', { ascending: false }),
-    ]).then(([appRes, enrollRes, matchRes]) => {
+      supabase.from('volunteer_availability').select('*').order('volunteer_name').order('day_of_week').order('start_time'),
+      supabase.from('slot_requests').select('*').eq('status', 'Accepted').order('created_at', { ascending: false }),
+    ]).then(([appRes, enrollRes, matchRes, slotsRes, sessionsRes]) => {
       setApplications(appRes.data || []);
       setEnrollments(enrollRes.data || []);
       setMatches(matchRes.data || []);
+      setAvailabilitySlots(slotsRes.data || []);
+      setScheduledSessions(sessionsRes.data || []);
       setLoading(false);
     });
   };
@@ -2710,6 +2716,16 @@ function AdminPortal() {
               )}
             </button>
             <button
+              onClick={() => setTab('schedule')}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-sm border transition-colors ${
+                tab === 'schedule'
+                  ? 'bg-secondary text-secondary-foreground border-secondary'
+                  : 'bg-background border-border hover:bg-muted'
+              }`}
+            >
+              <CalendarDays className="w-4 h-4" /> Schedule
+            </button>
+            <button
               onClick={() => setTab('directory')}
               className={`inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-sm border transition-colors ${
                 tab === 'directory'
@@ -2751,6 +2767,8 @@ function AdminPortal() {
             removeMatch={removeMatch}
             matchError={matchError}
           />
+        ) : tab === 'schedule' ? (
+          <AdminSchedule slots={availabilitySlots} sessions={scheduledSessions} />
         ) : (
           <AdminDirectory
             enrollments={enrollments}
@@ -3202,6 +3220,106 @@ function StudentDetailDrawer({ student, meetLink, onClose }: { student: StudentP
         </div>
       </div>
     </>
+  );
+}
+
+function AdminSchedule({ slots, sessions }: {
+  slots: Slot[];
+  sessions: SlotRequest[];
+}) {
+  const slotById: Record<string, Slot> = {};
+  slots.forEach((s) => {
+    slotById[s.id] = s;
+  });
+
+  const slotsByVolunteer: Record<string, Slot[]> = {};
+  slots.forEach((s) => {
+    if (!slotsByVolunteer[s.volunteer_email]) slotsByVolunteer[s.volunteer_email] = [];
+    slotsByVolunteer[s.volunteer_email].push(s);
+  });
+
+  const formatSlotTime = (slot?: Slot) => {
+    if (!slot) return 'Time no longer available';
+    return slot.slot_type === 'recurring'
+      ? `${slot.day_of_week} ${slot.start_time}–${slot.end_time}`
+      : `One-off ${slot.start_time}–${slot.end_time}`;
+  };
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h3 className="font-display text-xl tracking-tight mb-4 flex items-center gap-2">
+          <CalendarDays className="w-5 h-5 text-secondary" strokeWidth={1.5} /> Scheduled sessions
+          {sessions.length > 0 && (
+            <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">{sessions.length}</span>
+          )}
+        </h3>
+        {sessions.length === 0 ? (
+          <div className="border border-dashed border-border rounded-sm p-8 text-center">
+            <p className="text-foreground/60">No sessions have been scheduled yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session) => {
+              const slot = slotById[session.slot_id];
+              return (
+                <div key={session.id} className="border border-border rounded-sm p-5 bg-background flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-display text-base tracking-tight">
+                      {session.student_name}{' '}
+                      <span className="text-foreground/40">&harr;</span>{' '}
+                      {slot?.volunteer_name || 'Unknown volunteer'}
+                    </p>
+                    <p className="text-sm text-foreground/60 mt-0.5">
+                      {formatSlotTime(slot)}
+                      {slot?.instrument_specialty ? ` · ${slot.instrument_specialty}` : ''}
+                    </p>
+                    {session.notes && <p className="text-xs text-foreground/50 mt-1">{session.notes}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="font-display text-xl tracking-tight mb-4 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-secondary" strokeWidth={1.5} /> Volunteer availability
+        </h3>
+        {Object.keys(slotsByVolunteer).length === 0 ? (
+          <div className="border border-dashed border-border rounded-sm p-8 text-center">
+            <p className="text-foreground/60">No volunteers have added availability yet.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {Object.entries(slotsByVolunteer).map(([email, vSlots]) => (
+              <div key={email} className="border border-border rounded-sm p-5 bg-background">
+                <p className="font-display text-base tracking-tight">{vSlots[0].volunteer_name}</p>
+                <p className="text-xs text-foreground/40 mb-3">{email}</p>
+                <div className="space-y-1.5">
+                  {vSlots.map((slot) => (
+                    <div key={slot.id} className="flex items-center justify-between gap-3 text-sm">
+                      <span>
+                        {formatSlotTime(slot)}
+                        {slot.instrument_specialty ? ` · ${slot.instrument_specialty}` : ''}
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs px-2 py-0.5 rounded-sm ${
+                          slot.status === 'Open' ? 'bg-accent/20 text-accent-foreground' : 'bg-muted text-foreground/60'
+                        }`}
+                      >
+                        {slot.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
