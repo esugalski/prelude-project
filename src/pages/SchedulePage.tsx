@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, CheckCircle2, Clock, Plus, Trash2 } from 'luci
 import { Reveal } from '@/components/Reveal';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { formatTimeRange } from '@/lib/time';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -146,7 +147,7 @@ export function SchedulePage() {
               <CalendarDays className="w-5 h-5 text-secondary" strokeWidth={1.5} />
               <div>
                 <h2 className="font-display text-xl tracking-tight">Your weekly calendar</h2>
-                <p className="text-sm text-foreground/60">Select a day to add an available window.</p>
+                <p className="text-sm text-foreground/60">Select a day to add an available window. All times are Eastern (EST).</p>
               </div>
             </div>
             {loading ? (
@@ -166,7 +167,7 @@ export function SchedulePage() {
                     <div className="mt-3 space-y-2">
                       {slotsByDay[day].length > 0 ? slotsByDay[day].map((slot) => (
                         <span key={slot.id} className="flex items-center gap-1.5 rounded-sm bg-secondary/10 px-2 py-1.5 text-xs text-secondary">
-                          <Clock className="w-3.5 h-3.5 shrink-0" /> {slot.start_time}–{slot.end_time}
+                          <Clock className="w-3.5 h-3.5 shrink-0" /> {formatTimeRange(slot.start_time, slot.end_time)}
                         </span>
                       )) : <span className="text-xs italic text-foreground/35">No times added</span>}
                     </div>
@@ -223,7 +224,7 @@ export function SchedulePage() {
                 <div key={slot.id} className="flex items-center justify-between gap-4 border border-border rounded-sm px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold">{slot.day_of_week}</p>
-                    <p className="mt-0.5 text-sm text-foreground/60">{slot.start_time}–{slot.end_time}{slot.notes ? ` · ${slot.notes}` : ''}</p>
+                    <p className="mt-0.5 text-sm text-foreground/60">{formatTimeRange(slot.start_time, slot.end_time)}{slot.notes ? ` · ${slot.notes}` : ''}</p>
                   </div>
                   <button type="button" onClick={() => removeSlot(slot)} className="shrink-0 text-foreground/40 hover:text-destructive transition-colors" aria-label={`Remove ${slot.day_of_week} availability`}>
                     <Trash2 className="w-4 h-4" />

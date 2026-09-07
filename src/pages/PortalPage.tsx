@@ -43,6 +43,7 @@ import { ProfileEditor } from '@/components/ProfileEditor';
 import { ProfileCard, type VolunteerProfileView, type StudentProfileView } from '@/components/ProfileCard';
 import { ChatBox, UnreadDot, useUnreadMatches } from '@/components/ChatBox';
 import { supabase } from '@/lib/supabase';
+import { formatTimeRange } from '@/lib/time';
 import { useAuth } from '@/lib/auth';
 import { courseData, courseTitles, courseDescriptions, instrumentFamilies } from '@/data/courses';
 
@@ -509,7 +510,8 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
       )}
 
       <Reveal>
-        <h2 id="lesson-times" className="font-display text-2xl tracking-tight mb-5">Available lesson times</h2>
+        <h2 id="lesson-times" className="font-display text-2xl tracking-tight mb-1">Available lesson times</h2>
+        <p className="text-sm text-foreground/50 mb-5">All times are Eastern (EST).</p>
       </Reveal>
 
       {loading ? (
@@ -533,8 +535,8 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
                 <div className="mt-3 flex items-center gap-2 text-sm text-foreground/60">
                   <Clock className="w-4 h-4" strokeWidth={1.5} />
                   {slot.slot_type === 'recurring'
-                    ? `${slot.day_of_week} ${slot.start_time}\u2013${slot.end_time}`
-                    : `One-off ${slot.start_time}\u2013${slot.end_time}`}
+                    ? `${slot.day_of_week} ${formatTimeRange(slot.start_time, slot.end_time)}`
+                    : `One-off ${formatTimeRange(slot.start_time, slot.end_time)}`}
                 </div>
                 {slot.notes && <p className="mt-2 text-xs text-foreground/50">{slot.notes}</p>}
                 <button
@@ -1903,6 +1905,7 @@ function VolunteerCalendarTab({ userEmail, application, slots, requests, onReloa
       </h3>
       <p className="text-sm text-foreground/60 mb-5">
         Add the recurring times you are available to teach. Families will see these open windows when they request a lesson.
+        All times are Eastern (EST).
       </p>
 
       {requests.length > 0 && (
@@ -1922,7 +1925,7 @@ function VolunteerCalendarTab({ userEmail, application, slots, requests, onReloa
                   <div>
                     <p className="text-sm font-semibold">{req.student_name}</p>
                     <p className="mt-0.5 text-sm text-foreground/60">
-                      {slot ? `${slot.day_of_week} · ${slot.start_time}–${slot.end_time}` : 'Requested time'}
+                      {slot ? `${slot.day_of_week} · ${formatTimeRange(slot.start_time, slot.end_time)}` : 'Requested time'}
                       {req.notes ? ` · ${req.notes}` : ''}
                     </p>
                   </div>
@@ -1973,7 +1976,7 @@ function VolunteerCalendarTab({ userEmail, application, slots, requests, onReloa
                 <div className="mt-3 space-y-2">
                   {slotsByDay[day].length > 0 ? slotsByDay[day].map((slot) => (
                     <span key={slot.id} className="flex items-center gap-1.5 rounded-sm bg-secondary/10 px-2 py-1.5 text-xs text-secondary">
-                      <Clock className="w-3.5 h-3.5 shrink-0" /> {slot.start_time}–{slot.end_time}
+                      <Clock className="w-3.5 h-3.5 shrink-0" /> {formatTimeRange(slot.start_time, slot.end_time)}
                     </span>
                   )) : <span className="text-xs italic text-foreground/35">No times added</span>}
                 </div>
@@ -2023,7 +2026,7 @@ function VolunteerCalendarTab({ userEmail, application, slots, requests, onReloa
               <div key={slot.id} className="flex items-center justify-between gap-4 border border-border rounded-sm px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold">{slot.day_of_week}</p>
-                  <p className="mt-0.5 text-sm text-foreground/60">{slot.start_time}–{slot.end_time}{slot.notes ? ` · ${slot.notes}` : ''}</p>
+                  <p className="mt-0.5 text-sm text-foreground/60">{formatTimeRange(slot.start_time, slot.end_time)}{slot.notes ? ` · ${slot.notes}` : ''}</p>
                 </div>
                 <button type="button" onClick={() => removeSlot(slot)} className="shrink-0 text-foreground/40 hover:text-destructive transition-colors" aria-label={`Remove ${slot.day_of_week} availability`}>
                   <Trash2 className="w-4 h-4" />
@@ -3244,12 +3247,14 @@ function AdminSchedule({ slots, sessions, pendingSessions }: {
   const formatSlotTime = (slot?: Slot) => {
     if (!slot) return 'Time no longer available';
     return slot.slot_type === 'recurring'
-      ? `${slot.day_of_week} ${slot.start_time}–${slot.end_time}`
-      : `One-off ${slot.start_time}–${slot.end_time}`;
+      ? `${slot.day_of_week} ${formatTimeRange(slot.start_time, slot.end_time)}`
+      : `One-off ${formatTimeRange(slot.start_time, slot.end_time)}`;
   };
 
   return (
-    <div className="space-y-10">
+    <div>
+      <p className="text-sm text-foreground/50 mb-8">All times are Eastern (EST).</p>
+      <div className="space-y-10">
       <div>
         <h3 className="font-display text-xl tracking-tight mb-4 flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-secondary" strokeWidth={1.5} /> Scheduled sessions
@@ -3360,6 +3365,7 @@ function AdminSchedule({ slots, sessions, pendingSessions }: {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
 import { Reveal } from '@/components/Reveal';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { formatTimeRange } from '@/lib/time';
 
 const specialties = [
   'Piano / Keys',
@@ -406,7 +407,7 @@ export function VolunteerPage() {
                 <div>
                   <label className="text-sm font-medium text-foreground/70">Available lesson times (optional)</label>
                   <p className="mt-1 text-xs text-foreground/50">
-                    Add specific recurring slots so families can request them directly.
+                    Add specific recurring slots so families can request them directly. All times are Eastern (EST).
                   </p>
                   <SlotBuilder slots={slots} setSlots={setSlots} defaultSpecialty={form.instrument_specialty} />
                 </div>
@@ -491,9 +492,9 @@ function SlotBuilder({
 
   const formatSlot = (s: AvailabilitySlot) => {
     if (s.slot_type === 'recurring') {
-      return `${s.day_of_week} ${s.start_time}–${s.end_time}`;
+      return `${s.day_of_week} ${formatTimeRange(s.start_time, s.end_time)}`;
     }
-    return `One-off ${s.start_time}–${s.end_time}`;
+    return `One-off ${formatTimeRange(s.start_time, s.end_time)}`;
   };
 
   return (
