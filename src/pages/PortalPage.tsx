@@ -2523,11 +2523,14 @@ function LessonPlanEditor({ volunteerId, existingPlan, students, onClose, onSave
   );
 }
 
-function isVolunteerReady(app: VolunteerApp): boolean {
-  const hasProfile = Boolean(
+function volunteerHasProfile(app: VolunteerApp): boolean {
+  return Boolean(
     app.profile_bio || app.profile_image_url || app.profile_hobbies || app.profile_teaching_methods
   );
-  return Boolean(app.training_completed && hasProfile);
+}
+
+function isVolunteerReady(app: VolunteerApp): boolean {
+  return Boolean(app.training_completed && volunteerHasProfile(app));
 }
 
 function AdminPortal() {
@@ -2757,7 +2760,15 @@ function AdminPortal() {
             updateEnrollmentStatus={updateEnrollmentStatus}
           />
         ) : tab === 'volunteers' ? (
-          <AdminVolunteers applications={applications} updateAppStatus={updateAppStatus} updateTrainingStatus={updateTrainingStatus} />
+          <AdminVolunteers
+            applications={applications}
+            updateAppStatus={updateAppStatus}
+            updateTrainingStatus={updateTrainingStatus}
+            onReadyForMatching={(volunteerId) => {
+              setMatchVolunteer(volunteerId);
+              setTab('matching');
+            }}
+          />
         ) : tab === 'matching' ? (
           <AdminMatching
             approvedVolunteers={approvedVolunteers}
@@ -2885,10 +2896,12 @@ function AdminVolunteers({
   applications,
   updateAppStatus,
   updateTrainingStatus,
+  onReadyForMatching,
 }: {
   applications: VolunteerApp[];
   updateAppStatus: (id: string, status: string) => void;
   updateTrainingStatus: (id: string, trainingCompleted: boolean) => void;
+  onReadyForMatching: (volunteerId: string) => void;
 }) {
   if (applications.length === 0) {
     return (
@@ -2928,14 +2941,32 @@ function AdminVolunteers({
                       <XCircle className="w-3.5 h-3.5" /> Denied
                     </span>
                   )}
-                  {isVolunteerReady(app) ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-sm">
-                      <GraduationCap className="w-3.5 h-3.5" /> Ready for matching
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-orange-50 text-orange-700 rounded-sm">
-                      <Clock className="w-3.5 h-3.5" /> Training or profile incomplete
-                    </span>
+                  {app.status === 'Approved' && (
+                    <>
+                      {app.training_completed ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-accent/20 text-accent-foreground rounded-sm">
+                          <GraduationCap className="w-3.5 h-3.5" /> Volunteer training: Complete
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-orange-50 text-orange-700 rounded-sm">
+                          <Clock className="w-3.5 h-3.5" /> Volunteer training: Incomplete
+                        </span>
+                      )}
+                      {volunteerHasProfile(app) ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-accent/20 text-accent-foreground rounded-sm">
+                          <UserCircle className="w-3.5 h-3.5" /> Profile: Complete
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-orange-50 text-orange-700 rounded-sm">
+                          <Clock className="w-3.5 h-3.5" /> Profile: Incomplete
+                        </span>
+                      )}
+                      {isVolunteerReady(app) && (
+                        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-sm">
+                          <Handshake className="w-3.5 h-3.5" /> Ready for matching
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-foreground/60">
@@ -2985,6 +3016,18 @@ function AdminVolunteers({
                   >
                     <GraduationCap className="w-4 h-4" />
                     {app.training_completed ? 'Mark training incomplete' : 'Mark training complete'}
+                  </button>
+                  <button
+                    onClick={() => isVolunteerReady(app) && onReadyForMatching(app.id)}
+                    disabled={!isVolunteerReady(app)}
+                    title={
+                      isVolunteerReady(app)
+                        ? undefined
+                        : 'Training and a profile must both be complete before this volunteer can be matched.'
+                    }
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-cta text-cta-foreground text-sm font-semibold rounded-sm hover:bg-cta/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-cta"
+                  >
+                    <Handshake className="w-4 h-4" /> Ready for matching
                   </button>
                   <button
                     onClick={() => updateAppStatus(app.id, 'Pending')}
