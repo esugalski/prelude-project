@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, ScanLine, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { SheetMusicScanner } from '@/components/SheetMusicScanner';
+
+const MESSAGE_COLUMNS = 'id, match_id, sender_role, sender_email, body, created_at, read, attachment_url, attachment_name';
 
 export interface MatchMessage {
   id: string;
@@ -10,6 +13,13 @@ export interface MatchMessage {
   body: string;
   created_at: string;
   read: boolean;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+}
+
+function randomId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 const POLL_INTERVAL_MS = 6000;
@@ -92,6 +102,8 @@ export function ChatBox({
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const counterpartRole: 'volunteer' | 'parent' = currentRole === 'volunteer' ? 'parent' : 'volunteer';
 
@@ -112,7 +124,7 @@ export function ChatBox({
   const loadMessages = async () => {
     const { data } = await supabase
       .from('match_messages')
-      .select('id, match_id, sender_role, sender_email, body, created_at, read')
+      .select(MESSAGE_COLUMNS)
       .eq('match_id', matchId)
       .order('created_at', { ascending: true });
     if (data) setMessages(data);
@@ -162,7 +174,7 @@ export function ChatBox({
     const { data, error: insertError } = await supabase
       .from('match_messages')
       .insert({ match_id: matchId, sender_role: currentRole, sender_email: currentEmail, body })
-      .select('id, match_id, sender_role, sender_email, body, created_at, read')
+      .select(MESSAGE_COLUMNS)
       .single();
     setSending(false);
     if (insertError || !data) {
@@ -171,6 +183,40 @@ export function ChatBox({
     }
     setDraft('');
     appendMessage(data);
+  };
+
+  const sendAttachment = async (blob: Blob) => {
+    setShowScanner(false);
+    setUploading(true);
+    setError('');
+    try {
+      const path = `${matchId}/${randomId()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(path, blob, { contentType: 'image/jpeg', cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+
+      const { data: pub } = supabase.storage.from('chat-attachments').getPublicUrl(path);
+
+      const { data, error: insertError } = await supabase
+        .from('match_messages')
+        .insert({
+          match_id: matchId,
+          sender_role: currentRole,
+          sender_email: currentEmail,
+          body: '',
+          attachment_url: pub.publicUrl,
+          attachment_name: 'Sheet music scan',
+        })
+        .select(MESSAGE_COLUMNS)
+        .single();
+      if (insertError || !data) throw insertError;
+      appendMessage(data);
+    } catch {
+      setError('Your scan could not be sent. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -209,7 +255,16 @@ export function ChatBox({
                       : 'bg-muted text-foreground'
                   }`}
                 >
-                  <p className="leading-relaxed whitespace-pre-wrap break-words">{m.body}</p>
+                  {m.attachment_url && (
+                    <a href={m.attachment_url} target="_blank" rel="noopener noreferrer" className="block -mx-1 -mt-0.5 mb-1.5">
+                      <img
+                        src={m.attachment_url}
+                        alt={m.attachment_name || 'Attachment'}
+                        className="rounded-sm max-h-64 w-auto border border-black/10"
+                      />
+                    </a>
+                  )}
+                  {m.body && <p className="leading-relaxed whitespace-pre-wrap break-words">{m.body}</p>}
                   <p className={`mt-1 text-[11px] ${isMine ? 'text-primary-foreground/70' : 'text-foreground/50'}`}>
                     {formatTime(m.created_at)}
                   </p>
@@ -221,6 +276,15 @@ export function ChatBox({
       </div>
 
       <form onSubmit={sendMessage} className="flex items-center gap-2 border-t border-border px-4 py-3 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowScanner(true)}
+          disabled={uploading}
+          title="Scan sheet music"
+          className="shrink-0 inline-flex items-center justify-center w-10 h-10 border border-input rounded-sm hover:bg-muted transition-colors disabled:opacity-40"
+        >
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
+        </button>
         <input
           type="text"
           value={draft}
@@ -237,6 +301,10 @@ export function ChatBox({
         </button>
       </form>
       {error && <p className="px-5 pb-3 text-xs text-destructive">{error}</p>}
+
+      {showScanner && (
+        <SheetMusicScanner onCapture={sendAttachment} onClose={() => setShowScanner(false)} />
+      )}
     </div>
   );
 }
