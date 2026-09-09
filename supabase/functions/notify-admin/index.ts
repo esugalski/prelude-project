@@ -11,6 +11,7 @@
 //   - INSERT on public.matches                    -> parent + volunteer notified of the match
 //   - INSERT on public.slot_requests              -> teacher notified of a new lesson-time request
 //   - UPDATE on public.slot_requests              -> student/parent notified on Pending->Accepted
+//   - INSERT on public.match_messages             -> other chat party notified of a new message
 //
 // Sends via Resend from the verified melodymission.com domain. Every email is
 // wrapped in a shared branded header/footer — see wrapEmail() below. Template
@@ -288,6 +289,66 @@ function buildSlotRequestAcceptedEmail(record: Record<string, unknown>): EmailJo
   };
 }
 
+async function buildMatchMessageJobs(
+  record: Record<string, unknown>,
+  supabase: ReturnType<typeof createClient>
+): Promise<EmailJob[] | null> {
+  const matchId = record.match_id as string | undefined;
+  const senderRole = str(record, 'sender_role');
+  if (!matchId || (senderRole !== 'volunteer' && senderRole !== 'parent')) return null;
+
+  const { data: match } = await supabase
+    .from('matches')
+    .select('enrollment_id, volunteer_id')
+    .eq('id', matchId)
+    .maybeSingle();
+  if (!match) return null;
+
+  const [{ data: volunteer }, { data: enrollment }] = await Promise.all([
+    supabase.from('volunteer_applications').select('full_name, email').eq('id', match.volunteer_id).maybeSingle(),
+    supabase.from('lesson_enrollments').select('child_name, parent_name, parent_email').eq('id', match.enrollment_id).maybeSingle(),
+  ]);
+  if (!volunteer || !enrollment) {
+    console.warn('notify: chat message but volunteer/enrollment lookup failed', { matchId });
+    return null;
+  }
+
+  const body = str(record, 'body').trim();
+  const attachmentName = str(record, 'attachment_name').trim();
+  const preview = body || (attachmentName ? `Sent an attachment: ${attachmentName}` : 'Sent a new message');
+  const childName = String(enrollment.child_name ?? 'your student');
+  const volunteerName = String(volunteer.full_name ?? 'your volunteer teacher');
+  const parentName = String(enrollment.parent_name ?? 'the parent');
+
+  if (senderRole === 'volunteer') {
+    if (!enrollment.parent_email) return null;
+    return [{
+      to: [String(enrollment.parent_email)],
+      subject: `New message from ${volunteerName}`,
+      html: `
+        ${heading('New chat message')}
+        <p>Hi ${parentName || 'there'},</p>
+        <p><strong>${volunteerName}</strong>, ${childName}'s volunteer teacher, sent you a new message:</p>
+        <blockquote style="margin:12px 0; padding:10px 14px; border-left:3px solid ${BRAND.teal}; background-color:${BRAND.cream}; color:${BRAND.bodyText};">${preview}</blockquote>
+        <p>Log in to the portal to reply.</p>
+      `,
+    }];
+  }
+
+  if (!volunteer.email) return null;
+  return [{
+    to: [String(volunteer.email)],
+    subject: `New message from ${parentName}`,
+    html: `
+      ${heading('New chat message')}
+      <p>Hi ${volunteerName},</p>
+      <p><strong>${parentName}</strong>, ${childName}'s parent, sent you a new message:</p>
+      <blockquote style="margin:12px 0; padding:10px 14px; border-left:3px solid ${BRAND.teal}; background-color:${BRAND.cream}; color:${BRAND.bodyText};">${preview}</blockquote>
+      <p>Log in to the portal to reply.</p>
+    `,
+  }];
+}
+
 async function resolveJobs(
   payload: WebhookPayload,
   supabase: ReturnType<typeof createClient>
@@ -311,6 +372,9 @@ async function resolveJobs(
     }
     if (table === 'slot_requests') {
       return buildSlotRequestedJobs(record, supabase);
+    }
+    if (table === 'match_messages') {
+      return buildMatchMessageJobs(record, supabase);
     }
     return null;
   }
