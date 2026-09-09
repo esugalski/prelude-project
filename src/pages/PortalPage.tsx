@@ -78,6 +78,7 @@ interface Enrollment {
   child_age: number;
   parent_name: string;
   parent_email: string;
+  parent_phone?: string;
   instrument_interest: string;
   notes: string;
   status: string;
@@ -704,6 +705,7 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
         <AddChildModal
           parentName={enrollments[0]?.parent_name ?? ''}
           parentEmail={userEmail}
+          parentPhone={enrollments[0]?.parent_phone ?? ''}
           userId={user?.id}
           onClose={() => setShowAddChild(false)}
           onAdded={(newId) => {
@@ -733,9 +735,10 @@ function StudentPortal({ userEmail }: { userEmail: string }) {
   );
 }
 
-function AddChildModal({ parentName, parentEmail, userId, onClose, onAdded }: {
+function AddChildModal({ parentName, parentEmail, parentPhone, userId, onClose, onAdded }: {
   parentName: string;
   parentEmail: string;
+  parentPhone: string;
   userId?: string;
   onClose: () => void;
   onAdded: (newEnrollmentId: string) => void;
@@ -780,6 +783,7 @@ function AddChildModal({ parentName, parentEmail, userId, onClose, onAdded }: {
         child_age: Number(childAge),
         parent_name: parentName,
         parent_email: parentEmail,
+        parent_phone: parentPhone,
         instrument_interest: instruments.join(', '),
         notes,
         status: 'Pending',
@@ -3681,6 +3685,7 @@ function ChildDetail({ data }: { data: Enrollment }) {
         <DetailRow icon={<Music className="w-4 h-4" />} label="Instrument interest" value={data.instrument_interest || 'Not specified'} />
         <DetailRow icon={<Users className="w-4 h-4" />} label="Parent / guardian" value={data.parent_name} />
         <DetailRow icon={<Mail className="w-4 h-4" />} label="Parent email" value={data.parent_email} />
+        <DetailRow icon={<Phone className="w-4 h-4" />} label="Parent phone" value={data.parent_phone || 'Not provided'} />
         <DetailRow icon={<CheckCircle2 className="w-4 h-4" />} label="Status" value={data.status} />
       </div>
 

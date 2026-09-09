@@ -48,7 +48,7 @@ const emptyChild = (): ChildDraft => ({
 
 export function LessonsPage() {
   const { user } = useAuth();
-  const [parent, setParent] = useState({ parent_name: '', parent_email: '' });
+  const [parent, setParent] = useState({ parent_name: '', parent_email: '', parent_phone: '' });
   const [children, setChildren] = useState<ChildDraft[]>([emptyChild()]);
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -145,6 +145,7 @@ export function LessonsPage() {
         child_age: Number(c.child_age) || 0,
         parent_name: parent.parent_name,
         parent_email: parent.parent_email,
+        parent_phone: parent.parent_phone,
         instrument_interest: c.instrument_interest,
         notes: c.notes,
         status: 'Pending',
@@ -273,6 +274,17 @@ export function LessonsPage() {
                 {user && (
                   <p className="mt-1.5 text-xs text-foreground/50">Using your account email.</p>
                 )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground/70">Parent / guardian phone number</label>
+                <input
+                  type="tel"
+                  required
+                  value={parent.parent_phone}
+                  onChange={(e) => updateParent('parent_phone', e.target.value)}
+                  className="mt-1.5 w-full px-4 py-3 border border-input rounded-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
 
               <div className="space-y-5">
