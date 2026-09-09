@@ -295,7 +295,22 @@ async function buildMatchMessageJobs(
 ): Promise<EmailJob[] | null> {
   const matchId = record.match_id as string | undefined;
   const senderRole = str(record, 'sender_role');
+  const messageId = record.id as string | undefined;
   if (!matchId || (senderRole !== 'volunteer' && senderRole !== 'parent')) return null;
+
+  // Don't pile on another email if the recipient already has an earlier
+  // unread message in this conversation - they're already on the hook to
+  // see it. Notifications resume once they've read up and a new message
+  // comes in (read state is set by the chat UI, see ChatBox.tsx).
+  const { data: priorUnread } = await supabase
+    .from('match_messages')
+    .select('id')
+    .eq('match_id', matchId)
+    .eq('sender_role', senderRole)
+    .eq('read', false)
+    .neq('id', messageId ?? '')
+    .limit(1);
+  if (priorUnread && priorUnread.length > 0) return null;
 
   const { data: match } = await supabase
     .from('matches')
